@@ -1,17 +1,13 @@
 ****************
 *
-* DEMO 6
-* created : 29.05.95
+* chained_scbs.asm
+* July 2019
 *
-* date	changes
-* 04.05.96	NEWKEY included
+* Show difference between drawing 102 sprites as chained and as single SBCs.
 *
+* Handy:
+* Lynx II:
 
-* Handy: 14 32 | 1e 21
-* Lynx II: 0e 43 | 3a 11
-
-* Copy CPU:	     50ms Handy, 67ms Lynx
-* Suzy (102 sprite): 33ms Handy, 17ms Lynx
 
 DEBUG	set 1
 Baudrate	set 62500
@@ -19,7 +15,6 @@ Baudrate	set 62500
 _1000HZ_TIMER	set 7
 
 IRQ_SWITCHBUF_USR set 1
-
 
 	include <macros\hardware.asm>
 ****************
@@ -477,7 +472,7 @@ SCB0_data:
 MakeSCBs::
 	MOVEI piggy-1,ptr	; Adresse des Bildes
 	MOVEI scbdata,ptr1	; aubereitetes Bild
-	ldx #101
+	ldx #0
 .loop	  lda ptr1
 	  sta scbtab,x
 	  sta SCBDATA+2
@@ -508,8 +503,9 @@ MakeSCBs::
 	  sta ptr
 	  bcc .cont1
 	    inc ptr+1
-.cont1	  dex
-	bpl .loop
+.cont1	  inx
+	cpx #102
+	bne .loop
 	rts
 
 SCB	dc.b $c0,$90,$00
