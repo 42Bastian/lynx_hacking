@@ -5,8 +5,8 @@
 *
 * Show difference between drawing 102 sprites as chained and as single SBCs.
 *
-* Handy:
-* Lynx II:
+* Handy:   chained: 17ms  unchained 19ms
+* Lynx II: chained: 11ms, unchained 14ms
 
 
 DEBUG	set 1
@@ -118,7 +118,7 @@ Start::	sei
 	INITKEY
 	INITFONT LITTLEFNT,RED,WHITE
 	jsr Init1000Hz
-	FRAMERATE 50
+	FRAMERATE 60
 	jsr InitComLynx
 	SETIRQ 2,VBL
 	SCRBASE screen0,screen1
