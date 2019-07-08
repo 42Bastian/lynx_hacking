@@ -1,6 +1,9 @@
 ****************
 *
 * chained_scbs.asm
+*
+* (c) 42Bastian Schick
+*
 * July 2019
 *
 * Show difference between drawing 102 sprites as chained and as single SBCs.
