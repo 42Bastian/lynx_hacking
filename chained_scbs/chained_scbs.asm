@@ -19,7 +19,7 @@ _1000HZ_TIMER	set 7
 
 IRQ_SWITCHBUF_USR set 1
 
-	include <macros\hardware.asm>
+	include <includes\hardware.inc>
 ****************
 	MACRO DoSWITCH
 	dec SWITCHFlag
