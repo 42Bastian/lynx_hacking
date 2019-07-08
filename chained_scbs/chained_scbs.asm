@@ -27,41 +27,11 @@ IRQ_SWITCHBUF_USR set 1
 	bmi .\wait_vbl
 	ENDM
 
-	MACRO NEG
-	sec
-	tya
-	sbc \0
-	sta \0
-	tya
-	sbc 1+\0
-	sta 1+\0
-	ENDM
-
-	MACRO SINUS
-	ldx \0
-	lda SinTab.Lo,x
-	sta \1
-	lda SinTab.Hi,x
-	sta \1+1
-	ENDM
-
-	MACRO COSINUS
-	clc
-	lda \0
-	adc #64
-	tax
-	lda SinTab.Lo,x
-	sta \1
-	lda SinTab.Hi,x
-	sta \1+1
-	ENDM
-
 ****************
 * macros
 	include <macros/help.mac>
 	include <macros/if_while.mac>
 	include <macros/font.mac>
-	include <macros/window.mac>
 	include <macros/mikey.mac>
 	include <macros/suzy.mac>
 	include <macros/irq.mac>
@@ -72,7 +42,6 @@ IRQ_SWITCHBUF_USR set 1
 	include <vardefs/debug.var>
 	include <vardefs/help.var>
 	include <vardefs/font.var>
-	include <vardefs/window.var>
 	include <vardefs/mikey.var>
 	include <vardefs/suzy.var>
 	include <vardefs/irq.var>
@@ -82,23 +51,21 @@ IRQ_SWITCHBUF_USR set 1
 ****************************************************
 
  BEGIN_ZP
-poly_color	ds 1
+ptr		ds 2
 ptr1		ds 2
+ptr2		ds 2
 counter		ds 1
-flag		ds 1
 winkel		ds 1
 winkel_nk	ds 1  ; Nachkomma
 winkel_add1	ds 1
 amplitude	ds 1
-Y		ds 1
 frame_counter	ds 1
-Xoffset		ds 1
 *********************
  END_ZP
 
  BEGIN_MEM
 irq_vektoren	ds 16
-	ALIGN 4
+		ALIGN 4
 screen0		ds SCREEN.LEN
 screen1		ds SCREEN.LEN
 scbdata		ds SCREEN.LEN+102*3
@@ -108,7 +75,8 @@ scbs		ds 102*15
  END_MEM
 	run LOMEM
 ECHO "START :%HLOMEM ZP : %HNEXT_ZP"
-Start::	sei
+Start::
+	sei
 	cld
 	CLEAR_MEM
 	CLEAR_ZP
@@ -140,11 +108,10 @@ Start::	sei
 	sta amplitude
 	stz counter
 	stz winkel
-	lda #$E0
+	lda #$e0
 	sta winkel_add1
 	stz _1000Hz
 	stz _1000Hz+1
-	stz Y
 again::
  IF 1
 	jsr MakeChainedSCBs
@@ -159,7 +126,7 @@ again::
 	  lda _1000Hz
 	  jsr PrintHex
 	  DoSWITCH
-		dec $fda0
+	  dec $fda0
 	  stz _1000Hz
 	  inc counter
 	bne .loop
@@ -174,12 +141,12 @@ x::
 .loop
 	  jsr _cls
 	  jsr DrawSCBs4
-	stz $fda0
+	  stz $fda0
 	  stz CurrX
 	  lda _1000Hz
 	  jsr PrintHex
 	  DoSWITCH
-	dec $fda0
+	  dec $fda0
 	  stz _1000Hz
 	  inc counter
 	bne .loop
@@ -187,25 +154,6 @@ x::
 	bne .loop
 
 	jmp again
-
-copyPic::
-	MOVEI piggy,.src+1	; Adresse des Bildes
-	MOVE ScreenBase,.dst+1
-	ldy	#0
-	ldx	#32
-.src
-	lda	piggy,y
-.dst
-	sta	screen0,y
-	iny
-	bne	.src
-	inc	.src+2
-	inc	.dst+2
-	dex
-	bne	.src
-	rts
-
-
 ****************
 VBL::
 	inc winkel
@@ -237,14 +185,11 @@ DrawSCBs5::
 	  lda scbtab+102,y
 	  sta ptr+1
 
-	  clc
-	  lda $fc61
-	  adc Xoffset
-	  sta (ptr)
 	  phy
+	  lda $fc61
+	  sta (ptr)
 	  ldy #1
-	  lda Xoffset+1
-	  adc $fc62
+	  lda $fc62
 	  sta (ptr),y
 	  ply
 
@@ -264,21 +209,13 @@ DrawSCBs5::
  ENDIF
 	lda #<SCB0
 	ldy #>SCB0
-	jsr DrawSprite
-	rts
+	jmp DrawSprite
 
 DrawSCBs4::
 	ldy #101
+	stz SCBy
 	ldx winkel
-	stz flag
-	lda Y
-	sta SCBy
-	stz SCBy+1
-	beq .cont0
-	stz winkel
-	ldx #0
-.cont0	lda winkel
-	pha
+	phx
 	lda winkel_nk
 	pha
 .loop	  lda scbtab,y
@@ -296,21 +233,18 @@ DrawSCBs4::
 	  sta $fc55
 .wait	  bit SPRSYS
 	  bmi .wait
-	  clc
 	  lda $fc61
-	  adc Xoffset
 	  sta SCBx
-	  lda Xoffset+1
-	  adc $fc62
+	  lda $fc62
 	  sta SCBx+1
+
 	  clc
 	  lda winkel_nk
 	  adc winkel_add1
 	  sta winkel_nk
-	  lda winkel
-	  adc #0
-	  sta winkel
-	  tax
+	  bcc .noc
+	    inx
+.noc
  ENDIF
 	  phy
 	  lda #<SCB
@@ -318,12 +252,8 @@ DrawSCBs4::
 	  jsr DrawSprite
 	  ply
 	  inc SCBy
-	  lda SCBy
-	  cmp #102
-	  beq .exit
 	  dey
 	bpl .loop
-.exit
 	pla
 	sta winkel_nk
 	pla
