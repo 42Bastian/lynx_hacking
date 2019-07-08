@@ -1,5 +1,7 @@
 ; micro loader
 ;
+; (c) 42Bastian Schick
+;
 ; programm must start at $1ff, first byte must contain number of
 ; pages to load (see demo.s), so actual code at $200
 ;
