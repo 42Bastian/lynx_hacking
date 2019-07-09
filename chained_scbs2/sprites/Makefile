@@ -7,7 +7,7 @@ sprites:
 	echo "sprite_addr_hi:" > spriteaddrhi.inc
 	for y in {0..9}; do
 	  for x in {0..9}; do
-	    echo "spr$$x$$y: ibytes \"sprites/phobyx00$${x}00$${y}.spr\"" >> sprites.inc
+	    echo "spr$$x$$y: ibytes \"sprites/phobyx00$${y}00$${x}.spr\"" >> sprites.inc
 	    echo " .dc.b <spr$$x$$y" >> spriteaddrlo.inc
 	    echo " .dc.b >spr$$x$$y" >> spriteaddrhi.inc
 	  done

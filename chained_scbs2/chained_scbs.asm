@@ -56,8 +56,9 @@ winkel_nk	ds 1  ; Nachkomma
 winkel_add1	ds 1
 amplitude	ds 1
 frame_counter	ds 1
-x	ds 1
-y	ds 1
+x	ds 2
+y	ds 2
+tmp	ds 1
 *********************
  END_ZP
 
@@ -104,7 +105,7 @@ Start::
 	stz _1000Hz+1
 	stz _1000Hz+2
 	cli
-	lda #40
+	lda #20
 	sta amplitude
 	stz counter
 	stz winkel
@@ -126,7 +127,7 @@ again::
 	  lda _1000Hz
 	  jsr PrintHex
 	  DoSWITCH
-	  dec $fda0
+//->	  dec $fda0
 	  stz _1000Hz
 	  inc counter
 	bne .loop
@@ -143,7 +144,7 @@ VBL::
 	END_IRQ
 ****************
 DrawSCBs5::
- IF 0
+ IF 1
 	ldy #0
 	ldx winkel
 	phx
@@ -161,8 +162,10 @@ DrawSCBs5::
 .wait	  bit SPRSYS
 	  bmi .wait
 
+	  MOVE $fc61,x
 	  phx
-	  ldx	#10
+	  lda #10
+	sta tmp
 .loopx
 	  lda scbtab,y
 	  sta ptr
@@ -171,30 +174,46 @@ DrawSCBs5::
  IF 1
 	  phy
 	  clc
-	  lda 	$fc61
+	  lda 	x
 	  adc	scbx,y
 	  sta 	(ptr)
 	  ldy	#1
-	  lda	$fc62
+	  lda	x+1
 	  adc	#0
 	  sta	(ptr),y
 	  ply
  ENDIF
- IF 0
+ IF 1
+	  lda SinTab.Lo,x
+	  sta $fc54
+	  lda SinTab.Hi,x
+	  sta $fc55
+.wait1	  bit SPRSYS
+	  bmi .wait1
+
 	  phy
 	  clc
 	  lda 	$fc61
+//->	  adc (ptr)
+//->	  sta (ptr)
 	  adc	scby,y
 	  ldy	#2
 	  sta 	(ptr),y
 	  iny
 	  lda	$fc62
+//->	  ldy #1
+//->	  adc (ptr),y
 	  adc	#0
 	  sta	(ptr),y
 	  ply
+	txa
+	adc #4
+	tax
+//->	  inx
+//->	inx
  ENDIF
 	  iny
-	  dex
+	  dec tmp
 	bne .loopx
 	plx
 	  clc
@@ -205,7 +224,9 @@ DrawSCBs5::
 	   inx
 .noc
 	cpy #100
-	bne .loop
+	beq	.exit
+	jmp .loop
+.exit
 	pla
 	sta winkel_nk
 	pla
@@ -340,7 +361,7 @@ SCB0
 	dc.w SCB0_data	; data
 	dc.w 0		; x
 	dc.w -1		; y
-	dc.w $100,$100	; size
+	dc.w $f0,$f0	; size
 	dc.b $01,$23,$45,$67,$89,$AB,$CD,$EF
 SCB0_data:
 	dc.b 2,0,0
