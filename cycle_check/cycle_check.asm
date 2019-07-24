@@ -76,12 +76,10 @@ Start::
 	INITIRQ irq_vektoren
 	INITKEY
 	INITFONT LITTLEFNT,RED,WHITE
-//->	jsr Init1000Hz
 	FRAMERATE 75
-	; 75Hz => 126us per line
 
 	jsr InitComLynx
-//->	SETIRQ 0,HBL
+
 	SETIRQ 2,VBL
 	SCRBASE screen0,screen1
 	SET_MINMAX 0,0,160,102
@@ -100,13 +98,14 @@ Start::
 	jmp again
 	ALIGN 1024
 again::
-	clc
+	sec
 	stz	$ff
 	stz	TIMER7+TIM_CNT
-	ldx	#16
+	ldx	#32
 .l
 	MACRO j
-	adc	$1000
+	nop
+//->	adc	$1000
 .\x
 	ENDM
 
@@ -130,38 +129,30 @@ again::
 	dc.b $02
 	ENDM
 
-; iter  obcode  count   us   cycles
-;              of 64us  per opcode
-; -----------------------------------
-; 16384 xb,x3     76   0.297   1
-; 16384 NOP      152   0.594   2
-; 16384 x2       152   0.594   2
-; 16384 adc imm  152   0.594   2
-;  8192 adc zp   130   1.02    3.4
-;  8192 adc abs  169   1.32    4.4
-;  8192 jmp      122   0.953   3.2
-;  8192 bra      122   0.953   3.2
-;  8192 bCC       76   0.598   2.1	  ; branch not taken
-;  8192 bCC      122   0.953   3.2    ; branch taken
-;  8192 $dc,$fc  169   1.32    4.4
-;  4096 $5c      177   2.77    2.6
-;  4096 inc abs  130   2.03    6.8
-;  4096 inc zp   111   1.73    5.8
+;                    75Hz          |        60Hz           |        50Hz
+; iter opcode  count   us   cycles | count    us   cycles  | count    us   cycles |
+;              of 64us  per opcode | of 64us  per opcode   | of 64us  per opcode  |
+; ---------------------------------------------------------------------------------
+; 32K  xb,x3    152   0.297   1    |  148    0.289    1	   |  145    0.283    1
+; 16K  NOP      152   0.594   2    |  147    0.578    2	   |  144    0.563    2
+; 16K  x2       152   0.594   2	   |			   |
+; 16K  adc imm  152   0.594   2    |			   |
+;  8K  adc zp   130   1.02    3.4  |			   |
+;  8K  adc abs  169   1.32    4.4  |  163    1.27     4.4  |
+;  8K  jmp      122   0.953   3.2  |			   |
+;  8K  bra      122   0.953   3.2  |			   |
+;  8K  bCC n/t   76   0.598   2.1  |			   |
+;  8K  bCC  /t  122   0.953   3.2  |			   |
+;  8K  $dc,$fc  169   1.32    4.4  |			   |
+;  4K  $5c      177   2.77    2.6  |			   |
+;  4K  inc abs  130   2.03    6.8  |			   |
+;  4K  inc zp   111   1.73    5.8  |			   |
 
+; n/t not taken
+;  /t taken
 
-	; iter  size opcode
-	; 16384   1   0b..fb    5,0ms => 0,3us  => 1cycle
-	; 16384   1   03..f3    5,0ms => 0,3us  => 1cycle
-	; 16384   1   NOP       9,5ms => 0,58us => 2cycles
-	; 16384   2   $02       9,5ms => 0,6us  => 2cycles
-	; 8192    3   5c,dc,fc 11,0ms => 1,2us  => 4cylces
-	; 8192    2   f4       11,0ms => 1,3us  => 4cylces
-	; 8192    2   44        9,5ms => 1,2us  => 4cycles
 
 ****************
-HBL::
-	stz	$fdb0
-	END_IRQ
 VBL::
 	dec $fda0
 	IRQ_SWITCHBUF
