@@ -57,6 +57,7 @@ winkel_add1	ds 1
 amplitude	ds 1
 frame_counter	ds 1
 x	ds 2
+x1	ds 2
 y	ds 2
 tmp	ds 1
 *********************
@@ -114,26 +115,40 @@ Start::
 	stz _1000Hz
 	stz _1000Hz+1
 	jsr MakeChainedSCBs
+	lda	#8
+	sta	size
+	sta	size+2
+	stz	size+1
+	stz	size+3
 again::
- IF 1
 	lda #1
 	sta frame_counter
 	pha
 .loop
+	clc
+	lda	size
+inc:
+	adc	#1
+	sta	size
+	sta	size+2
+	bcc	.ok
+	inc	size+1
+	inc	size+3
+	stz inc+1
+.ok
 	  jsr _cls
 	  jsr DrawSCBs5
-	stz $fda0
+	  stz $fda0
 	  stz CurrX
 	  lda _1000Hz
 	  jsr PrintHex
 	  DoSWITCH
-//->	  dec $fda0
+	  dec $fda0
 	  stz _1000Hz
 	  inc counter
 	bne .loop
 	dec frame_counter
 	bne .loop
- ENDIF
 
 	jmp again
 ****************
@@ -176,11 +191,33 @@ DrawSCBs5::
 	  clc
 	  lda 	x
 	  adc	scbx,y
-	  sta 	(ptr)
-	  ldy	#1
+	  sta	x1
 	  lda	x+1
 	  adc	#0
+	  sta	x1+1
+
+	  ldy	#1
+	  lda	#SPRCTL1_PALETTE_NO_RELOAD
+	  sta 	(ptr),y
+
+	  lda	x1+1
+	  bne	.xok0	; < 0 >= draw tile
+	  lda	x1
+	  cmp	#160
+	  bcc	.xok
+	  ;; skip tile if outside right border
+	  lda	#SPRCTL1_SKIP
 	  sta	(ptr),y
+	  bra	.next
+.xok0
+	  lda	x1
+.xok
+	  ldy	#7
+	  sta 	(ptr),y
+	  iny
+	  lda	x1+1
+	  sta	(ptr),y
+.next
 	  ply
  ENDIF
  IF 1
@@ -197,7 +234,7 @@ DrawSCBs5::
 //->	  adc (ptr)
 //->	  sta (ptr)
 	  adc	scby,y
-	  ldy	#2
+	  ldy	#9
 	  sta 	(ptr),y
 	  iny
 	  lda	$fc62
@@ -241,12 +278,13 @@ _cls::	lda #<clsSCB
 	ldy #>clsSCB
 	jmp DrawSprite
 
-clsSCB	dc.b $0,$10,0
+clsSCB
+	dc.b $0,$10,0
 	dc.w 0,clsDATA
 	dc.w 0,0
 	dc.w $100*10,$100*102
 clsCOLOR
-	dc.b 0
+	dc.b $04
 clsDATA
 	dc.b 2,%01111100
 	dc.b 0
@@ -255,7 +293,7 @@ MakeChainedSCBs::
 	MOVEI scbs,ptr2
 
 	stz	y
-	lda	#1
+	lda	#0
 	sta	x
 	ldx 	#0
 .loop
@@ -322,10 +360,10 @@ MakeChainedSCBs::
 	ply
 	clc
 	lda	ptr2
-	adc	#7
+//->	adc	#7
 	sta	scbtab,x
 	lda	ptr2+1
-	adc	#0
+//->	adc	#0
 	sta	scbtab+102,x
 
 	MOVE	ptr2,ptr
@@ -336,9 +374,9 @@ MakeChainedSCBs::
 
 	inx
 	lda	x
-	cmp	#161
+	cmp	#160
 	bne	.toloop
-	lda 	#1
+	lda 	#0
 	sta	x
 	lda	y
 	clc
@@ -361,8 +399,9 @@ SCB0
 	dc.w SCB0_data	; data
 	dc.w 0		; x
 	dc.w -1		; y
-	dc.w $f0,$f0	; size
-	dc.b $01,$23,$45,$67,$89,$AB,$CD,$EF
+size:
+	dc.w $100,$100	; size
+	dc.b $01,$23,$45,$67,$89,$AB,$CD,$E0
 SCB0_data:
 	dc.b 2,0,0
 

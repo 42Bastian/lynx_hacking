@@ -95,20 +95,22 @@ Start::
 	sta	TIMER7+TIM_CNTRL1
 	cli
 
+	lda #$00
+	sta $f192
 	jmp again
 	ALIGN 1024
 again::
 	sec
 	stz	$ff
 	stz	TIMER7+TIM_CNT
-	ldx	#16
+
+	ldx	#2
 .l
 	MACRO j
-	bra .\x
-.\x
+	nop
 	ENDM
 
-	REPT 512
+	REPT 256
 	j
 	ENDR
 	dex
