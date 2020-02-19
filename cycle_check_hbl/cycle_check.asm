@@ -1,10 +1,10 @@
 ****************
 *
-* chained_scbs.asm
+* cycle_check.asm
 *
 * (c) 42Bastian Schick
 *
-* July 2019
+* Feb. 2020
 *
 
 
@@ -89,75 +89,46 @@ dummy:
 	stz $fda0
 	END_IRQ
 
-	ALIGN 256
-test_a
+	MACRO defTest ; rept opcode
+	ALIGN	256
+test_\0:
 	dec $FDA0
-	REPT 32
-	dc.b $1b
+	REPT \1
+	\2
 	ENDR
-	stz $fda0
+	stz $FDA0
 	END_IRQ
+	ENDM
 
-	ALIGN 256
-test_b
-	dec $FDA0
-	REPT 32
-	nop
-	ENDR
-	stz $fda0
-	END_IRQ
+	defTest a,32,dc.b $1b
+	defTest b,64,dc.b $1b
+	defTest c,96,dc.b $1b
+	defTest d,128,dc.b $1b
+	defTest e,32,nop
+	defTest f,32,adc $ff
+	defTest g,32,inc $ff
+	defTest h,32,inc $8000
 
-	ALIGN 256
-test_c
-	dec $fda0
-	rept 32
-	adc $ff
+	MACRO entry ; test
+	rept 8
+	dc.w test_\0
 	endr
-	stz $fda0
-	END_IRQ
-
-	ALIGN 256
-test_d
-	dec $fda0
-	rept 32
-	inc $ff
-	endr
-	stz $fda0
-	END_IRQ
-
-	ALIGN 256
-test_e
-	dec $fda0
-	rept 32
-	inc $8000
-	endr
-	stz $fda0
-	END_IRQ
+cnt set cnt+8
+	ENDM
 
 cnt set 1
 test:
 	dc.w 0
-	rept 8
-	dc.w test_a
-cnt set cnt+1
-	endr
-	rept 8
-	dc.w test_b
-cnt set cnt+1
-	endr
-	rept 8
-	dc.w test_c
-cnt set cnt+1
-	endr
-	rept 8
-	dc.w test_d
-cnt set cnt+1
-	endr
-	rept 8
-	dc.w test_e
-cnt set cnt+1
-	endr
-	rept 108-cnt
+	entry a
+	entry b
+	entry c
+	entry d
+	entry e
+	entry f
+	entry g
+	entry h
+
+	rept 107-cnt
 	dc.w dummy
 	endr
 
