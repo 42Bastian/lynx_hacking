@@ -1,4 +1,4 @@
-cycle_check.o: cycle_check.asm
+cycle_check.o: cycle_check.asm my_irq.inc
 	lyxass -shex $<
 
 .PHONY: send
