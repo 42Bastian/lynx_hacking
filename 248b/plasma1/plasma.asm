@@ -39,6 +39,12 @@ screen0	 equ $4000
 Start::
 	lda	#$c
 	sta	$fff9
+	ldx	#31
+.0
+	stz	$fda0,x
+	dex
+	bpl .0
+
 	lda	#<screen0
 	sta	$fd94
 	sta	$fc08
@@ -47,8 +53,6 @@ Start::
 	sta	$fd95
 	sta	$fc09
 	sta	screen+1
-
-	SETRGB	pal
 
 	lda	#102
 	sta	y
@@ -95,7 +99,7 @@ Start::
 	dec	y
 	bne	.ly
 
-	cli
+	SETRGB	pal
 endless::
 	lda	$fcb0
 	bne	.2
