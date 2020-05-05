@@ -154,8 +154,9 @@ free 	set 249-size-18
 
 	IF free > 0
 	REPT	free
-	dc.b	$42		; unused space shall not be 0!
+	dc.b	$42
 	ENDR
+	ENDIF
 
 	;; must be at end
 plot_SCB:
@@ -177,10 +178,4 @@ End:
  ENDIF
 size	set End-Start
 
-
-
 	echo "Size:%dsize  Free:%dfree"
-	; fill remaining space
-	ENDIF
-
-//->	dc.b	$00	; end mark!
