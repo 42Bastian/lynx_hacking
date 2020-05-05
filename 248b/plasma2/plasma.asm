@@ -7,50 +7,53 @@
 	include <macros/help.mac>
 	include <macros/if_while.mac>
 	include <macros/mikey.mac>
+	include <macros/suzy.mac>
 
 *
 * vars only for this program
 *
+
  BEGIN_ZP
-offset		DS 1
-x		ds 1
-y		ds 1
-temp		ds 2
+x	ds 1
+y	ds 1
+offset	ds 1
+temp	ds 1
  END_ZP
 
-screen0	 equ $2400
-
+screen0	 equ $2000
  IFD LNX
 	run	$200
  ELSE
 	run	$400
  ENDIF
 
+ IFND LNX
+	lda #8
+	sta $fff9
+	cli
+	stz	x
+ ENDIF
 Start::
-	cli				// for BLL loader to allow re-loading
-	lda	#$8
-	sta	$fff9
-	lda	#$f3
-	sta	$fc83
-	STA	$FC90			// b0 = BUS ENABLE (b1..b7 don't care)
-	lda	#$24
-	sta	$fc92
+	ldx #9-1
+.mloop
+	  ldy	SUZY_addr,x
+	  lda	SUZY_data,x
+          sta	$fc00,y
+          dex
+        bpl .mloop
 
-//->	stz	$fd94
-//->	stz	$fc08
-//->	lda	#>screen0
+	stz	$fd94
 	sta	$fd95
-	sta	$fc09
 
 	SETRGB	pal
 
-	lda	#160
-	sta	x
 .lx
 	ldy	#101
 .ly
 	lda	x
-	dec
+	cmp	#160
+	beq	endless
+
 	sta	plot_x
 	jsr	get_sin
 	sta	temp
@@ -83,30 +86,27 @@ Start::
 	STA	$FC91
 	STZ	$FD90
 	STZ	$FD91
-	STZ	$FD90
+//->	STZ	$FD90
 
 	dey
 	bpl	.ly
-	dec	x
-	bne	.lx
+	inc	x
+	bra	.lx
 
 endless::
-	lda	$fcb0
-	bne	.2
+//->	lda	$fcb0
+//->	bne	.2
 	ldx	#30
 .vbl
 	lda	$fd0a
-	cmp	#1
 	bne	.vbl
 	dex
 	bpl	.vbl
 .2
 
 VBL
-	dec 	offset
-	bpl	.99
-	lda 	#2
-	sta	offset
+	dey
+	bpl	endless
 
 	ldy	$fdbf
 	ldx	#30
@@ -118,8 +118,8 @@ VBL
 	lda	$fdb0
 	sta	$fda0
 	sty	$fdb0
-.99
-	bra endless
+	ldy	#2
+	bra 	endless
 
 get_cos::
 	clc
@@ -143,9 +143,23 @@ sin:	dc.b $89,$ab,$cd,$ee
 	dc.b $fe,$ed,$cb,$a9
 	dc.b $76,$54,$32,$11
 	dc.b $11,$12,$34,$56
+pal:
+	DP 604,715,725,736,746,857,867,878,888,898,8A9,8B9,9CA,9DA,9EB,9FB
 
+SUZY_addr  db $09,$08,$92,$04,$06,$28,$2a,$83,$90
+SUZY_data  db $20,$00,$24,$00,$00,$7f,$7f,$f3,$01
+
+size	set *-Start
+free 	set 249-size-18
+
+	IF free > 0
+	REPT	free
+	dc.b	$42		; unused space shall not be 0!
+	ENDR
+
+	;; must be at end
 plot_SCB:
-	dc.b SPRCTL0_16_COL |SPRCTL0_BACKGROUND_SHADOW  // 0
+	dc.b SPRCTL0_16_COL |SPRCTL0_BACKGROUND_NON_COLLIDABLE // 0
 	dc.b SPRCTL1_LITERAL|SPRCTL1_DEPTH_SIZE_RELOAD  // 1
 	dc.b 0						// 2
 	dc.w 0						// 3
@@ -156,23 +170,17 @@ plot_y	dc.w 0						// 9
 plot_color:
 	dc.b $0f					// 15
 plot_data:
-	dc.b 2,$10,0					// 16
-
-pal:
-	DP 604,715,725,736,746,857,867,878,888,898,8A9,8B9,9CA,9DA,9EB,9FB
-
+	dc.b 2,$10					// 16
 End:
+ IFND LNX
+	dc.b 0
+ ENDIF
 size	set End-Start
 
 
-free 	set 248-size
 
 	echo "Size:%dsize  Free:%dfree"
 	; fill remaining space
-	IF free > 0
-	REPT	free
-	dc.b	$42		; unused space shall not be 0!
-	ENDR
 	ENDIF
 
-	dc.b 	$00	; end mark!
+//->	dc.b	$00	; end mark!
