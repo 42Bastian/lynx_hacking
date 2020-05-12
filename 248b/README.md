@@ -23,3 +23,7 @@ Full resolution w/o SUZY plotting, but different algo using SUZY multiplication.
 ## Mandel
 
 Mandelbrot set in 80x102.
+
+## Mandel2
+
+Mandelbrot set in 160x102. Reduced fix-point resolution to 8 bit.
