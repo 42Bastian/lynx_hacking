@@ -10,31 +10,22 @@ DELTAI		EQU 52
 DELTAR		EQU 81
 
  BEGIN_ZP
-
-R0	DS 2
-I0	DS 2
-R	DS 2
-I	DS 2
-R2	ds 2
-I2	ds 2
-
-RMAX	DS 2
-IMAX	DS 2
-
-MAX_ITER	DS 1
-
-PlotMODE	DS 1
-PlotMode2	ds 1
-LOX	ds 1
-LOY	ds 1
-Width	ds 1
-COUNTER	ds 2
-DUMMY	ds 4
-
+	;; drawing
 screen		ds 2
 x		ds 1
 y		ds 1
 temp		ds 2
+
+	;; Mandelbrot
+R0		DS 2
+I0		DS 2
+R		DS 2
+I		DS 2
+R2		ds 2
+I2		ds 2
+COUNTER		ds 1
+DUMMY		ds 4
+
  END_ZP
 
 screen0		equ $4000
@@ -43,19 +34,17 @@ screen0		equ $4000
 	run	$200
  ELSE
 	run	$400
- ENDIF
-
- IFND LNX
-	lda #8
-	sta $fff9
+	lda	#8
+	sta	$fff9
 	cli
  ENDIF
+
 Start::
 	lda	#USE_AKKU|SIGNED_MATH
 	sta	SPRSYS
 
-	stz	$fd94
-	stz	screen
+//->	stz	$fd94
+//->	stz	screen
 	sta	$fd95
 	sta	screen+1
 
@@ -80,24 +69,24 @@ Start::
 	phy
 	jsr	ITER
 	ply
-	and	#$f
-	sta temp
+//->	and	#$f
+	sta	temp
 	asl
 	asl
 	asl
 	asl
-	ora temp
+	ora	temp
 	sta	(screen),y
 	iny
 	bne	.0
 	inc	screen+1
 .0
 //->        CLC
-        LDA R0
-        ADC #DELTAR
-        STA R0
-	bcc .1
-	inc R0+1
+        LDA	R0
+        ADC	#DELTAR
+        STA	R0
+	bcc	.1
+	inc	R0+1
 .1
 	dec	x
 	bne	.lx
@@ -115,7 +104,7 @@ endless::
 	bra	endless
 
 
-ITER	LDA #50			;MAX_ITER
+ITER	LDA #32			;MAX_ITER
 	STA COUNTER
 
 	MOVE I0,I	; I = I0
@@ -175,6 +164,7 @@ LOOP_ITER
 	bne LOOP_ITER
 END_ITER
 	lda COUNTER
+	lsr
 	RTS
 
 	;; Y:A = A:X*A:X
@@ -188,21 +178,21 @@ mul::
 
 	WAITSUZY
 	;; normalize
-	LDA MATHE_A+3
-	STA DUMMY+3
-	LDA MATHE_A+2
-	STA DUMMY+2
-	LDA MATHE_A+1
-	LDY #FIX_BITS-8
-LOOP1	LSR DUMMY+3
-	ROR DUMMY+2
+	LDA	MATHE_A+3
+	STA	DUMMY+3
+	LDA	MATHE_A+2
+	STA	DUMMY+2
+	LDA	MATHE_A+1
+	LDY	#FIX_BITS-8
+LOOP1	LSR	DUMMY+3
+	ROR	DUMMY+2
 	ROR
 	DEY
-	BNE LOOP1
+	BNE	LOOP1
 	clc
-	ldy DUMMY+2
+	ldy	DUMMY+2
 	rts
-
+;;; ----------------------------------------
 End:
 size	set End-Start
 
