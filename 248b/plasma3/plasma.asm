@@ -1,59 +1,52 @@
 ***************
-* 256.ASM
+* Plasma 3
+* 25 Bytes free!
 ****************
 
 	include <includes/hardware.inc>
 * macros
 	include <macros/help.mac>
-	include <macros/if_while.mac>
-	include <macros/mikey.mac>
-	include <macros/suzy.mac>
 
 *
 * vars only for this program
 *
 
  BEGIN_ZP
-offset		DS 1
 screen		ds 2
 x		ds 1
 y		ds 1
 temp		ds 2
 pal_off		ds 1
-pal_off1	ds 1
-pattern_idx	ds 1
-pattern_cnt	ds 1
  END_ZP
 
-screen0		equ $4000
+;;; ROM sets this address
+screen0		equ $2000
 
  IFD LNX
+	;; BLL loader is at $200, so move up
 	run	$200
  ELSE
 	run	$400
  ENDIF
 
-Start::
  IFND LNX
-	lda #8
-	sta $fff9
+	;; Setup needed if loaded via BLL/Handy
+	lda	#8
+	sta	$fff9
 	cli
+	stz	screen
+	stz	$fd94
+	lda	#$20
+	sta	$fd95
  ENDIF
-
-	lda	#USE_AKKU
+Start::
+	lda	#USE_AKKU	; == $40
 	sta	SPRSYS
+	lsr
+	sta	screen+1
 
 //->	stz	pal_off
 	jsr	gen_pal
-
-	stz	$fd94
-	stz	screen
-	lda	#>screen0
-	sta	$fd95
-	sta	screen+1
-
-	stz	pattern_cnt
-	stz	pattern_idx
 
 	lda	#102
 	sta	y
@@ -134,14 +127,11 @@ endless::
 	dex
 	bpl	.vbl
 .2
-
 	jsr 	waitVBL
-
 
 	inc	pal_off
 	jsr	gen_pal
 	bra 	endless
-
 ;;;------------------------------
 mulAX::
 ;;;------------------------------
@@ -191,7 +181,7 @@ gen_pal::
 	sta	$fdb0,y
 	dey
 	bpl .1
-	rts
+;;->	rts		; falling thru does not "hurt"
 
 get_cos::
 	clc
@@ -229,5 +219,3 @@ free 	set 249-size
 	dc.b	$42		; unused space shall not be 0!
 	ENDR
 	ENDIF
-
-//->	dc.b 	$00	; end mark!
