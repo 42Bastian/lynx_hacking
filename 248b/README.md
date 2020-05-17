@@ -20,6 +20,10 @@ Three bytes left, but need another two for the button check :(
 
 Full resolution w/o SUZY plotting, but different algo using SUZY multiplication.
 
+## Plasma 3.1
+
+Extended Plasma 3 with HW scrolling and different colors.
+
 ## Mandel
 
 Mandelbrot set in 80x102.
