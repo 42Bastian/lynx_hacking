@@ -1,8 +1,10 @@
 ***************
 * Game of Live
-* 0 Bytes free!
+* 5/7 Bytes free!
 ****************
 
+;;->CLEAR_PAST	EQU 0		; if not defined, dead cells become zombies :-)
+DELAY		EQU 4
 	include <includes/hardware.inc>
 * macros
 	include <macros/help.mac>
@@ -66,7 +68,7 @@ Start::
 	sta	playfield1+10*16+8
  ELSE
 .1
-	lda	$fe20,x
+	lda	$fe12,x
 	lsr
 	and	#1
 	sta	playfield1,x
@@ -114,21 +116,15 @@ Start::
 	ldy	ptr
 	lda	N
 
-//->	sec
-	sbc	#2
+	ora	(pf1),y
+	cmp	#3
 	beq	.done
-	bcs	.ko
-	inc
-	bne	.ko
-.ok
-	lda	(pf1),y
-	bne	.done2
-.ko
 	dex
+ IFD CLEAR_PAST
 	stz	N
+ ENDIF
 .done
 	txa
-.done2
 	sta	(pf2),y
 ;;; ----------------------------------------
 	lda	N
@@ -163,6 +159,7 @@ Start::
 	ldx	pf2+1
 	sta	pf2+1
 	stx	pf1+1
+	ldx	#DELAY
 .v
 ;;;------------------------------
 waitVBL
