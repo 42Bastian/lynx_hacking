@@ -1,10 +1,10 @@
 ***************
 * Game of Live
-* 5/7 Bytes free!
+* 11/14 Bytes free!
 ****************
 
-;;->CLEAR_PAST	EQU 0		; if not defined, dead cells become zombies :-)
-DELAY		EQU 4
+//->CLEAR_PAST	EQU 0		; if not defined, dead cells become zombies :-)
+
 	include <includes/hardware.inc>
 * macros
 	include <macros/help.mac>
@@ -57,6 +57,7 @@ screen0		equ $2000
 	dex
 	bne	.init2
 	lda	#0
+	stz	ptr
  ENDIF
 Start::
  IF 0
@@ -89,7 +90,6 @@ Start::
           dex
         bpl .mloop
 .outer:
-	stz	ptr
 	lda	#15
 	sta	y
 .ly
@@ -99,7 +99,21 @@ Start::
 	dec	ptr
 	stz	N
 	ldx	x
+	;; X for sprite
+	txa
+	asl
+	adc	x
+	asl
+	sta	plot_x
+
 	ldy	y
+	;; Y for sprite
+	tya
+	asl
+	adc	y
+	asl
+	sta	plot_y
+
 	jsr	cell_dex	;x-1,y
 	iny
 	jsr	cell		;x-1,y+1
@@ -115,31 +129,19 @@ Start::
 	ldx	#1
 	ldy	ptr
 	lda	N
+	sta	plot_color
 
 	ora	(pf1),y
 	cmp	#3
 	beq	.done
 	dex
  IFD CLEAR_PAST
-	stz	N
+	stz	plot_color
  ENDIF
 .done
 	txa
 	sta	(pf2),y
 ;;; ----------------------------------------
-	lda	N
-	sta	plot_color
-	lda	x
-	asl
-	adc	x
-	asl
-	sta	plot_x
-	lda	y
-	asl
-	adc	y
-	asl
-	sta	plot_y
-
 	lda	#<plot_SCB
 	sta	$fc10
 	lda	#>plot_SCB
@@ -159,25 +161,20 @@ Start::
 	ldx	pf2+1
 	sta	pf2+1
 	stx	pf1+1
-	ldx	#DELAY
-.v
+
+	lsr			; A == 10 || A == 9 => DELAY = 5/4
 ;;;------------------------------
 waitVBL
 ;;;------------------------------
 .v1
-	lda	$fd0a
+	ldx	$fd0a
 	bne	.v1
 .v2
-	lda	$fd0a
+	ldx	$fd0a
 	beq	.v2
 
-	dex
-	bpl	.v
-//->	lda	$fcb0
-//->	beq	.v
-//->.w
-//->	lda	$fcb0
-//->	bne	.w
+	dec
+	bpl	waitVBL
 	jmp	.outer
 ;;;----------------------------------------
 ;;; check one cell
