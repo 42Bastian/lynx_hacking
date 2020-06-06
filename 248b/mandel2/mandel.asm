@@ -1,3 +1,9 @@
+;;; ----------------------------------------
+;;; Lynx Mandelbrot using Suzy, 8bit fix point
+;;;
+;;; 24 bytes free
+;;; ----------------------------------------
+
 	include <includes/hardware.inc>
 	include <macros/help.mac>
 	include <macros/suzy.mac>
@@ -13,7 +19,7 @@ DELTAR		EQU 81/2/8
 screen		ds 2
 x		ds 1
 y		ds 1
-temp		ds 2
+temp		ds 1
 
 	;; Mandelbrot
 R0		DS 2
@@ -36,14 +42,14 @@ screen0		equ $4000
 	lda	#8
 	sta	$fff9
 	cli
+	stz	$fd94
+	stz	screen
  ENDIF
 
 Start::
 	lda	#USE_AKKU|SIGNED_MATH
 	sta	SPRSYS
 
-	stz	$fd94
-	stz	screen
 	sta	$fd95
 	sta	screen+1
 
@@ -59,49 +65,42 @@ Start::
         MOVEI	I_MAX,I0
 	lda	#102
 	sta	y
-
 .ly
 	lda	#160
 	sta	x
         MOVEI	R_MAX,R0
 .lx
-	phy
 	jsr	ITER
-	ply
 ;;;------------------------------
 ;;; plot
 ;;;------------------------------
-	// A = color
-	sta	temp
-	asl
-	asl
-	asl
-	asl
-	sta	temp+1
+	;; A = color
 	lda	x
 	lsr
-	lda	(screen),y
-	bcs	.lownibble
-	and	#$0f
-	ora	temp+1
-	bra	.3
-.lownibble:
-	and	#$f0
+	txa
+	bcc	.11
+	asl
+	asl
+	asl
+	asl
+	sta	temp
+	bra	.12
+.11
+	and	#$f
 	ora	temp
-.3
-	sta	(screen),y
-	bcc	.0
-	iny
-	bne	.0
+	sta	(screen)
+
+	inc	screen
+	bne	.12
 	inc	screen+1
-.0
+.12
         CLC
         LDA	R0
         ADC	#DELTAR
         STA	R0
-	bcc	.1
+	bcc	.13
 	inc	R0+1
-.1
+.13
 	dec	x
 	bne	.lx
 
@@ -109,24 +108,24 @@ Start::
         LDA	I0
         ADC	#DELTAI
         STA	I0
-	bcc	.2
+	bcc	.14
 	inc	I0+1
-.2
+.14
 	dec	y
 	bne	.ly
 endless::
 	bra	endless
 
-
 ITER	LDA #31
 	STA COUNTER
 
 	MOVE I0,I	; I = I0
-	MOVE R0,R	; R = R0
 
+	ldx R0			; R = R0
+	lda R0+1
 LOOP_ITER
-	LDX R
-	LDA R+1
+	sta R+1
+	STX R
 	jsr square
 
 	STA R2
@@ -156,30 +155,28 @@ LOOP_ITER
 	STA I
 	tya
 	ADC I0+1
-	STA I+1		; I=2*R*I+I0
+	STA I+1			; I=2*R*I+I0
 
 	SEC
 	LDA R2
 	SBC I2
-	TAY
+	TAX
 	LDA R2+1
 	SBC I2+1
-	TAX
+	TAY
 
 	CLC
-	TYA
-	ADC R0
-	STA R
 	TXA
-	ADC R0+1
-	STA R+1		; R=R2-I2+R0
+	ADC R0
+	tax
+	TYA
+	ADC R0+1		;; A:X=R2-I2+R0
 
 	DEC COUNTER
 	bne LOOP_ITER
 END_ITER
-	lda COUNTER
-	and #$f
-	RTS
+	ldx COUNTER
+	rts
 
 	;; Y:A = A:X*A:X
 square::
@@ -196,6 +193,9 @@ mul::
 	ldy	MATHE_A+2
 	clc
 	rts
+ITER_e
+size	set ITER_e-ITER
+	ECHO "ITER: %Dsize"
 ;;; ----------------------------------------
 End:
 size	set End-Start
