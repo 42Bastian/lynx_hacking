@@ -1,6 +1,6 @@
 ***************
 * Plasma 3.1
-* 0 Bytes free!
+* 11 Bytes free!
 ****************
 
 	include <includes/hardware.inc>
@@ -50,7 +50,6 @@ Start::
 
 	lda	#166		; 64 lines more for scrolling
 	sta	y
-	ldy	#0
 .ly
 	lda	#160
 	sta	x
@@ -72,44 +71,37 @@ Start::
 	lda	x
 	sbc	#80
 	jsr	get_sin
-	pha
+	tax
 	lda	y
 	sbc	#51
 	jsr	get_cos
-	plx
 	jsr	mulAX
 
-	lda	MATHE_AKKU
-	lsr
-	lsr
-
+	ldx	MATHE_AKKU
 ;;;------------------------------
 ;;; plot
 ;;;------------------------------
-	// A = color
-	sta	temp
-	asl
-	asl
-	asl
-	asl
-	sta	temp+1
+	;; X = color*4
 	lda	x
 	lsr
-	lda	(screen),y
-	bcs	.lownibble
-	and	#$0f
-	ora	temp+1
-	bra	.3
-.lownibble:
+	txa
+	bcc	.11
+	asl
+	asl
 	and	#$f0
+	sta	temp
+	bra	.12
+.11
+	lsr
+	lsr
+	and	#$f
 	ora	temp
-.3
-	sta	(screen),y
-	bcc	.1
-	iny
-	bne	.1
+	sta	(screen)
+
+	inc	screen
+	bne	.12
 	inc	screen+1
-.1
+.12
 	dec	x
 	bne	.lx
 	dec	y
@@ -167,27 +159,27 @@ waitVBL::
 ;;;------------------------------
 gen_pal::
 ;;;------------------------------
-	ldy	#15
+	ldx	#15
 .1
-	tya
+	txa
 	clc
 	adc	pal_off
 	jsr	get_sin
-	sta	$fda0,y
-	tya
+	sta	$fda0,x
+	txa
 	adc	pal_off
 	asl
 	jsr	get_sin
 	sta	temp
-	tya
+	txa
 	jsr	get_cos
 	asl
 	asl
 	asl
 	asl
 	ora	temp
-	sta	$fdb0,y
-	dey
+	sta	$fdb0,x
+	dex
 	bpl .1
 ;;->	rts		; falling thru does not "hurt"
 
@@ -197,8 +189,8 @@ get_cos::
 get_sin::
 	and	#$1f
 	lsr
-	tax
-	lda	sin,x
+	tay
+	lda	sin,y
 	bcs	.99
 	lsr
 	lsr
