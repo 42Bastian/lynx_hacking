@@ -41,7 +41,7 @@ main::
 .loop
 	dec	$fda2
 	inc	$fd24
-	ldx	#11-1
+	ldx	#12-1
 .mloop
 	  ldy	SUZY_addr,x
 	  lda	SUZY_data,x
@@ -63,6 +63,10 @@ main::
 	ldy	#0
 	bra	main
 ;;;------------------------------
+
+SUZY_addr
+	db $91,$04,$09,$08,$11,$10,$06,$28,$2a,$83,$92,$90
+
 plot_data:
 	;; "OUTLINE"
 	;; centered
@@ -79,14 +83,12 @@ plot_data:
 	dc.b 1
 	dc.b 3,%01001001,%01010010
 	dc.b 3,%11001000,%11001100
-	dc.b 0
+	;; fall into suzy data: $01 => change of drawing direction
 
-SUZY_addr
-	db $91,$09,$08,$11,$10,$04,$06,$28,$83,$92,$90
 SUZY_data
-	db $01,$20,$00,>plot_SCB,<plot_SCB,$00,$00,$7f,$f3,$00
+	db $01,$00,$20,$00,>plot_SCB,<plot_SCB,$00,$7f,$7f,$f3,$00
 plot_SCB:
-	db $01	 // last byte of SUZY_data	; 0
+	db $01	; last byte of SUZY_data		;0
 	dc.b SPRCTL1_LITERAL| SPRCTL1_DEPTH_SIZE_RELOAD ;1
 	dc.b 0						;2
 	dc.w 0						;3
@@ -94,14 +96,14 @@ plot_SCB:
 plot_x	dc.w 80						;7
 plot_y	dc.b 51						;9
 	;; Lynx rom clears to zero after boot loader!
- if 0
+End:
+ ifnd LNX
 plot_szx dc.w $100					;11
 plot_szy dc.w $100					;13
 plot_color:						;15
-	db	3
+	db	0
  endif
 
-End:
 size	set End-Start
 free 	set 128-size
 
