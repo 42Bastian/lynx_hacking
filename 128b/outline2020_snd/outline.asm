@@ -1,7 +1,7 @@
 ***************
 * Outline 2020 Demo
 * Enhanced with "sound"
-* 1 byte free.
+* 0 bytes free.
 ****************
 
 	include <includes/hardware.inc>
