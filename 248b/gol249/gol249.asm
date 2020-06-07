@@ -76,7 +76,7 @@ Start::
 	dex
 	bne	.1
  ENDIF
-	ldx #10
+	ldx	#10
 	stx	pf2+1
 	dex
 	stx	pf1+1
