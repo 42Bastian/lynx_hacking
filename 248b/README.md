@@ -31,3 +31,11 @@ Mandelbrot set in 80x102.
 ## Mandel2
 
 Mandelbrot set in 160x102. Reduced fix-point resolution to 8 bit.
+
+## rotz!
+
+ROTozoomer with sound! Rank #4 on Sommarhack 2020.
+
+## tuef
+
+TUnnelEFect. Rank #3 on Sommarhack 2020.
