@@ -1,6 +1,6 @@
 ***************
-* Minimal Suzy setup for sprites (no tricks).
-* 20 byte free.
+* Mini COMLynx Loader (not size optimized)
+* 17 byte free.
 ****************
 
 	include <includes/hardware.inc>
@@ -155,9 +155,9 @@ plot_color:						;15
 	db	3
 
 plot_data:
-	;; "OUTLINE"
-	;; centered
+	;; "NEW_BLL"
 	ibytes "new_bll.spr"
+
  IFND LNX
 	;; Lynx rom clears to zero after boot loader!
 	dc.b 0
