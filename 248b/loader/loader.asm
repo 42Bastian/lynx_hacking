@@ -10,13 +10,7 @@ Baudrate EQU 62500
 ;;; ROM sets this address
 screen0	 equ $2000
 
-
- IFD LNX
 	run	$200
- ELSE
-	;; BLL loader is at $200, so move up
-	run	$400
- ENDIF
 
  IFND LNX
 	;; Setup needed if loaded via BLL/Handy
@@ -26,45 +20,32 @@ screen0	 equ $2000
 	lda	#$20
 	stz	$fd94
 	sta	$fd95
-	stz 	$fd50
+	stz	$fd50
 	ldy	#2
  ENDIF
 
 Start::
-	lda	#$f
-	sta	$fdb3
-	stz	$fda0
-	ldx	#9-1
-.mloop
+	ldx	#12-1
+.sloop
 	  ldy	SUZY_addr,x
 	  lda	SUZY_data,x
           sta	$fc00,y
           dex
-        bpl .mloop
+        bpl .sloop
 
-	lda	#<plot_SCB	; Could be moved into SUZY_addr/data!
-	sta	SCBNEXT
-	lda	#>plot_SCB
-	sta	SCBNEXT+1
-	lda	#1
-	STA	SPRGO		; start drawing
-
-	STZ	SDONEACK
-	STZ	CPUSLEEP
+	ldx	#7-1
+.mloop
+	  ldy	MIKEY_addr,x
+	  lda	MIKEY_data,x
+	  sta   $fd00,y
+	  dex
+	bpl	.mloop
 
 	ldx #LoaderLen-1	; put Loader in the right place
 .loop	  lda _Loader,x
 	  sta Loader,x
 	  dex
 	bpl .loop
-
-main::
-	lda #%11101
-	sta $fd8c
-	lda #%00011000	 ; enable count,enable reload
-	sta $fd11
-	lda #125000/Baudrate-1
-	sta $fd10
 
 wait:
 	jsr	read_byte
@@ -77,24 +58,21 @@ wait:
 
 load_len	equ $0
 load_ptr	equ $2
-load_ptr2	equ $4
+load_len2	equ $4
+load_ptr2	equ $6
 
 _Loader	set *	; save current PC
 
-	RUN $100-55	; place Loader in ZP
+	RUN $100-50	; place Loader in ZP
 
 Loader::
 	ldy #4
 .loop0	  jsr read_byte
 	  sta load_len-1,y
+	  sta load_len2-1,y
 	  dey
 	bne .loop0	; get destination and length
 	tax	; lowbyte of length
-
-	lda load_ptr
-	sta load_ptr2
-	lda load_ptr+1
-	sta load_ptr2+1
 
 .loop1	inx
 	bne .1
@@ -104,12 +82,11 @@ Loader::
 
 .1	jsr read_byte
 	sta (load_ptr2),y
-	sta $fda0
+	sta $fdb0
 	iny
 	bne .loop1
 	inc load_ptr2+1
 	bra .loop1
-
 
 read_byte
 	bit $fd8c
@@ -125,22 +102,22 @@ LoaderLen	equ LoaderE-Loader
 	RUN _Loader+LoaderLen
 ;;;------------------------------
 	;; Writing low-byte in SUZY space clears highbyte!
-SUZY_addr
-	db $09,$08,$04,$06,$28,$2a,$83,$92,$90
-SUZY_data
-	db $20,$00,$00,$00,$7f,$7f,$f3,$00,$01
-plot_SCB:
-	dc.b SPRCTL0_BACKGROUND_NON_COLLIDABLE		;0
-	dc.b SPRCTL1_LITERAL| SPRCTL1_DEPTH_SIZE_RELOAD	;1
-	dc.b 0
-	dc.w next
-	dc.w cls_data
-	dc.w 0,0
-	dc.w 160*$100,102*$100
-	dc.b $00
-cls_data:
-	dc.b 2,00,0
+_SDONEACK EQU SDONEACK-$fd00
+_CPUSLEEP EQU CPUSLEEP-$fd00
+MIKEY_addr
+	dc.b	$10,$11,$8c,_CPUSLEEP,_SDONEACK,$b3,$a0
 
+MIKEY_data
+	dc.b	125000/Baudrate-1,%11000,%11101,0,0,$0f,0
+
+_SCBNEXT EQU SCBNEXT-$fc00
+_SPRGO   EQU SPRGO-$fc00
+SUZY_addr
+	db _SPRGO,_SCBNEXT+1,_SCBNEXT,$09,$08,$04,$06,$28,$2a,$83,$92,$90
+SUZY_data
+	db 1,>plot_SCB,<plot_SCB,$20,$00,$00,$00,$7f,$7f,$f3,$00
+
+plot_SCB:
 next:
 	db $01						;0
 	dc.b SPRCTL1_LITERAL| SPRCTL1_DEPTH_SIZE_RELOAD ;1
@@ -164,11 +141,11 @@ plot_data:
  ENDIF
 End:
 size	set End-Start
-free 	set 247-size
+free	set 199-size
 
 	IF free > 0
 	REPT	free
-	dc.b	0
+	dc.b	$42
 	ENDR
 	ENDIF
 
