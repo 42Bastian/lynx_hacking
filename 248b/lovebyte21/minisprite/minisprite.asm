@@ -1,5 +1,5 @@
 ***************
-* Minimal Suzy setup for sprites (no tricks).
+* Minimal Suzy setup for sprites.
 * 0 byte free.
 ****************
 
