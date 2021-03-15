@@ -13,7 +13,9 @@ Release: L<3vebyte Party 2021 #31/35
 ## Files
 
 minisprite.lnx - Ready for handy or mednafen or to be flashed
+
 minisprite.asm - source
+
 minisprite.png - Screenshot
 
 ## What
