@@ -1,9 +1,13 @@
 # TAON - The Art Of Noise
 
 Compo: Low-end 256 byte
+
 Platform: Atari Lynx (Emulator will do but may not sound correctly)
+
 Size: 249
+
 Author/Group: 42Bastian
+
 Release: L<3vebyte Party 2021 #34/35
 
 ## Files
