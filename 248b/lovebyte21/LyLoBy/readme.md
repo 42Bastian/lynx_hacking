@@ -20,6 +20,8 @@ lyloby.asm - Source
 
 lyloby.o   - Handy/BLL
 
+lyloby.bin - raw exe
+
 ## What
 
 This demo uses HBL for sky and 3 sprites.
