@@ -1,0 +1,91 @@
+;-*-asm-*-
+ IF 0
+;;; bytebeat
+;;; q = t & 0xffff,
+;;; (((q>>8) & 0x10) == 0x10)*(q & 32)
+;;; |
+;;; ((((q >> 13) ^ (q >> 5))) & 97)*1
+;;; |
+;;; (((q>>13) & 0x5))*(q & 8)
+
+	;; (((q>>8) & 0x10) == 0x10)*(q & 32)
+	BB_T
+	BB_PUSH 8
+	BB_SHR
+	BB_PUSH $10
+	BB_AND
+	BB_BOOL
+	BB_T
+	BB_PUSH 32
+	BB_AND
+	BB_MUL
+	;; ((((q >> 13) ^ (q >> 5))) & 97)
+	BB_T
+	BB_PUSH 13
+	BB_SHR
+	BB_T
+	BB_PUSH 5
+	BB_SHR
+	BB_EOR
+	BB_PUSH 97
+	BB_AND
+	;;(((q>>13) & 0x5))*(q & 8)
+	BB_T
+	BB_PUSH 13
+	BB_SHR
+	BB_PUSH 5
+	BB_AND
+	BB_T
+	BB_PUSH 8
+	BB_AND
+	BB_MUL
+	;;
+	BB_OR
+	BB_OR
+ ENDIF
+ IF 1
+;;; bytebeat
+;;; // Lynxbeat uses 16bit t
+;;; q = t & 0xffff,
+;;; (((q>>8) & 0x8))*(q & 7)
+;;; |
+;;; ((((q >> 13) ^ (q >> 5))) & 97)
+;;; |
+;;; (((q>>13) & 0x5))*(q & 8)
+
+
+	;;(((q>>8) & 0x8))*(q & 7)
+	BB_T
+	BB_PUSH 8
+	BB_SHR
+	BB_PUSH $8
+	BB_AND
+	BB_T
+	BB_PUSH 7
+	BB_AND
+	BB_MUL
+
+	;; ((((q >> 13) ^ (q >> 5))) & 97)
+	BB_T
+	BB_PUSH 13
+	BB_SHR
+	BB_T
+	BB_PUSH 5
+	BB_SHR
+	BB_EOR
+	BB_PUSH 97
+	BB_AND
+	;;(((q>>13) & 0x5))*(q & 8)
+	BB_T
+	BB_PUSH 13
+	BB_SHR
+	BB_PUSH 5
+	BB_AND
+	BB_T
+	BB_PUSH 8
+	BB_AND
+	BB_MUL
+	;;
+	BB_OR
+	BB_OR
+ ENDIF
