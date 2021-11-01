@@ -55,3 +55,11 @@ Lovebyte 2021 Party Entries
 ## NOISE
 
 Quick hack entry (due to lack of a good idea) for SV 2020+1 (Summer Edition)
+
+## timewarp
+
+Paralax star field. #5 in Bytesize compo at Inercia 2021.
+
+## aMAZEing
+
+Recursive maze generator. #8 in Bytesize compo at Inercia 2021. :.(
