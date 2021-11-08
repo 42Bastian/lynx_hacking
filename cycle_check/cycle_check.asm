@@ -107,7 +107,7 @@ again::
 	ldx	#2
 .l
 	MACRO j
-	nop
+	adc	$1000
 	ENDM
 
 	REPT 256
