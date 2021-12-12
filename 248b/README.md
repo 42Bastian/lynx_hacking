@@ -63,3 +63,7 @@ Paralax star field. #5 in Bytesize compo at Inercia 2021.
 ## aMAZEing
 
 Recursive maze generator. #8 in Bytesize compo at Inercia 2021. :.(
+
+## sv2k21
+
+SillyVenture 2021 (Winter Edition) Entries
