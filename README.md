@@ -27,3 +27,9 @@ A flasher for Karri's new flash card. Runs completely on the Lynx. No RasPi need
 ## microloader
 
 Smallest (?) possible Lynx boot-sector.
+
+## monalynx
+
+Port of the famous MONA intro for Ilmenit:
+https://www.pouet.net/prod.php?which=62917
+Currently 67 over the 249 byte limit.
