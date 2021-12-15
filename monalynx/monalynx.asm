@@ -1,6 +1,6 @@
 ***************
 * Lynx port of "MONA"
-* 67 bytes over limit
+* 65 bytes over limit
 ****************
 
 	include <includes/hardware.inc>
@@ -125,9 +125,8 @@ main::
 .xmi
 	dec	plot_x
 .e
-	lda	#$80
-	trb	plot_x
-	trb	plot_y
+	rmb7	plot_x
+	rmb7	plot_y
 
 	lda	plot_y
 	cmp	#96
