@@ -10,11 +10,11 @@
 screen0	 equ $2000
 
  BEGIN_ZP
+path_length	ds 2
 plot_color	ds 1
 plot_x		ds 1
 plot_y		ds 1
 seed		ds 4
-path_length	ds 2
 dir		ds 1
 ptr		ds 2
 tmp		ds 1
@@ -91,8 +91,7 @@ main::
 	sty	path_length+1
 ;;;------------------------------
 .loop0
-	lda	#32
-	sta	path_length
+	smb5	path_length	; path_length = 32 (zp 0 == 0 after ROM !)
 .loop
 	asl	seed
 	rol	seed+1
