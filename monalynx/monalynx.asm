@@ -1,6 +1,6 @@
 ***************
 * Lynx port of "MONA"
-* 61 bytes over limit
+* 52 bytes over limit
 ****************
 
 	include <includes/hardware.inc>
@@ -77,18 +77,18 @@ Start::
 	lda	#$c8
 	sta	seed+2
 	stz	MATHE_E
-	ldx	#63
+	ldy	#63
 main::
 ;;;------------------------------
 
-	lda	brush_lo,x
+	lda	brush_lo,y
 	sta	seed
 	sta	plot_x
-	lda	brush_hi,x
+	lda	brush_hi,y
 	sta	seed+1
 	sta	plot_y
-	stx	plot_color
-	stx	path_length+1
+	sty	plot_color
+	sty	path_length+1
 ;;;------------------------------
 .loop0
 	lda	#32
@@ -99,29 +99,25 @@ main::
 	rol	seed+2
 	rol	seed+3
 	bcc	.noxor
-	ldy	#3
+	ldx	#3
 .l1
-	lda	mask,y
-	eor	seed,y
-	sta	seed,y
-	dey
+	lda	mask,x
+	eor	seed,x
+	sta	seed,x
+	dex
 	bpl	.l1
 	sta	dir
 .noxor:
+	ldx	#0
+	bbs1	dir,.x
+	inx
+.x
 	bbs7	dir,.minus
-	bbs1	dir,.xpl
-	inc	plot_y
+	inc	plot_x,x
 	dc.b	$AD		; Opcode: LDA nn
-.xpl
-	inc	plot_x
-	bra	.e
 .minus
-	bbs1	dir,.xmi
-	dec	plot_y
-	dc.b	$AD		; Opcode: LDA nn
-.xmi
-	dec	plot_x
-.e
+	dec	plot_x,x
+
 	rmb7	plot_x
 	rmb7	plot_y
 
@@ -144,7 +140,7 @@ main::
 	lda	MATHE_A+2
 	adc	#$20
 	sta	ptr+1
-	ldy	#$f0
+	ldx	#$f0
 	lda	plot_color
 	and	#3
 	bbs0	plot_x,.1
@@ -152,10 +148,10 @@ main::
 	asl
 	asl
 	asl
-	ldy	#$f
+	ldx	#$f
 .1
 	sta	tmp
-	tya
+	txa
 	and	(ptr)
 	ora	tmp
 	sta	(ptr)
@@ -164,7 +160,7 @@ main::
 	bne	.loop
 	dec	path_length+1
 	bpl	.loop0
-	dex
+	dey
 .done
 	bmi	.done
 	jmp	main
