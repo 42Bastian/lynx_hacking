@@ -84,7 +84,9 @@ Start::
 	SCRBASE screen0,screen1
 	SET_MINMAX 0,0,160,102
 
-	lda #$c0
+	lda #0
+//->	ora #SIGNED_MATH
+//->	ora #USE_AKKU
 	ora _SPRSYS
 	sta SPRSYS
 	sta _SPRSYS
@@ -94,20 +96,23 @@ Start::
 	lda	#TIM_64us|TIM_RELOAD|TIM_COUNT
 	sta	TIMER7+TIM_CNTRL1
 	cli
-
-	lda #$00
-	sta $f192
-	jmp again
-	ALIGN 1024
 again::
 	sec
 	stz	$ff
 	stz	TIMER7+TIM_CNT
-
-	ldx	#2
+	ldx	#1024/256
+	lda	#255
+	jmp	test
+	ALIGN 1024
+test:
 .l
 	MACRO j
-	adc	$1000
+	stz	MATHE_C
+	sta	MATHE_C+1
+	stz	MATHE_E
+	sta	MATHE_E+1
+.\w	bit	SPRSYS
+	bmi	.\w
 	ENDM
 
 	REPT 256
@@ -117,13 +122,15 @@ again::
 	beq	.x1
 	jmp	.l
 .x1
-	  lda	TIMER7+TIM_CNT
-	  eor	#$ff
-	  inc
-	  stz $fda0
-	  stz CurrX
-	  jsr PrintDezA
-	  DoSWITCH
+	sei
+	lda	TIMER7+TIM_CNT
+	cli
+	eor	#$ff
+	inc
+	stz $fda0
+	stz CurrX
+	jsr PrintDezA
+	DoSWITCH
 	jmp again
 
 	MACRO SKIP1
@@ -151,6 +158,7 @@ again::
 ;  4K  $5c      177   2.77    2.6  |                       |
 ;  4K  inc abs  130   2.03    6.8  |                       |
 ;  4K  inc zp   111   1.73    5.8  |                       |
+;  1K  stz nn
 
 ; n/t not taken
 ;  /t taken

@@ -1,6 +1,6 @@
 ***************
 * Lynx port of "MONA"
-* 65 bytes over limit
+* 61 bytes over limit
 ****************
 
 	include <includes/hardware.inc>
@@ -87,11 +87,8 @@ main::
 	lda	brush_hi,x
 	sta	seed+1
 	sta	plot_y
-	phx
-	txa
+	stx	plot_color
 	stx	path_length+1
-	and	#3
-	sta	plot_color
 ;;;------------------------------
 .loop0
 	lda	#32
@@ -139,35 +136,34 @@ main::
 	bit	SPRSYS
 	bmi	.ws
 
-	lda	MATHE_A+1
+	lda	plot_x
+	lsr
+	clc
+	adc	MATHE_A+1
 	sta	ptr
 	lda	MATHE_A+2
 	adc	#$20
 	sta	ptr+1
-
-	lda	plot_x
-	lsr
-	tay
-	ldx	#$f0
+	ldy	#$f0
 	lda	plot_color
-	bcs	.1
+	and	#3
+	bbs0	plot_x,.1
 	asl
 	asl
 	asl
 	asl
-	ldx	#$f
+	ldy	#$f
 .1
 	sta	tmp
-	txa
-	and	(ptr),y
+	tya
+	and	(ptr)
 	ora	tmp
-	sta	(ptr),y
+	sta	(ptr)
 .skip
 	dec	path_length
 	bne	.loop
 	dec	path_length+1
 	bpl	.loop0
-	plx
 	dex
 .done
 	bmi	.done
@@ -213,8 +209,6 @@ brush_hi
 
 colors_g:
 	dc.b $06
-	dc.b $0a
-	dc.b $0e
 colors_br:
 	dc.b $0a
 	dc.b $4e
