@@ -32,4 +32,4 @@ Smallest (?) possible Lynx boot-sector.
 
 Port of the famous MONA intro for Ilmenit:
 https://www.pouet.net/prod.php?which=62917
-Currently 67 over the 249 byte limit.
+Currently 42 bytes over the 249 byte limit.
