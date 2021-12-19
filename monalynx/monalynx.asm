@@ -1,6 +1,6 @@
 ***************
 * Lynx port of "MONA"
-* 52 bytes over limit
+* 49 bytes over limit
 ****************
 
 	include <includes/hardware.inc>
@@ -10,7 +10,7 @@
 screen0	 equ $2000
 
  BEGIN_ZP
-path_length	ds 2
+path_length	ds 1
 plot_color	ds 1
 plot_x		ds 1
 plot_y		ds 1
@@ -20,9 +20,11 @@ ptr		ds 2
 tmp		ds 1
  END_ZP
 
+ IFD LNX
+mask	equ $231-4
+	run $231
+ ELSE
 	run	$200
-
- IFND LNX
 	;; Setup needed if loaded via BLL/Handy as .o file
 	lda	#8
 	sta	$fff9
@@ -52,17 +54,18 @@ tmp		ds 1
 	lda	#$fa
 	sta	5
 	stz	0
-//->	stz	$fd94
-//->	lda	#$20
-//->	sta	$fd95
 	ldy	#2
 	lda	#0
 	tax
  ENDIF
 
 Start::
+ IFD LNX
+	lda	#$c8
+	sta	seed+2
+	ldy	#63
+ ELSE
 ;;; --------------------
-
 //->	ldy	#2		// y = 2 from ROM
 .pal
 	lda	colors_g,y
@@ -78,6 +81,7 @@ Start::
 	sta	seed+2
 	stz	MATHE_E
 	ldy	#63
+ ENDIF
 main::
 ;;;------------------------------
 
@@ -88,7 +92,7 @@ main::
 	sta	seed+1
 	sta	plot_y
 	sty	plot_color
-	sty	path_length+1
+	phy
 ;;;------------------------------
 .loop0
 	smb5	path_length	; path_length = 32 (zp 0 == 0 after ROM !)
@@ -157,15 +161,13 @@ main::
 .skip
 	dec	path_length
 	bne	.loop
-	dec	path_length+1
+	dey
 	bpl	.loop0
+	ply
 	dey
 .done
 	bmi	.done
 	jmp	main
-
-
-mask:	dc.b $b7,$1d,$c1,$04
 
 brush_lo
 	dc.b $39,$B9,$44,$37
@@ -202,6 +204,7 @@ brush_hi
 	dc.b $1B,$8A,$F5,$0E
 	dc.b $07,$2F,$37,$03
 
+ IFND	LNX
 colors_g:
 	dc.b $06
 colors_br:
@@ -209,18 +212,11 @@ colors_br:
 	dc.b $4e
 	dc.b $8e
 
-End:
-	IFND LNX
-	;; Lynx rom clears to zero after boot loader!
-	dc.b 0
+mask:	dc.b $b7,$1d,$c1,$04
  ENDIF
-size	set End-Start
-free	set 249-size
 
-	IF free > 0
-	REPT	free
-	dc.b	0
-	ENDR
-	ENDIF
+End:
+size	set End-Start
+free	set 256-size
 
 	echo "Size:%dsize  Free:%dfree"
