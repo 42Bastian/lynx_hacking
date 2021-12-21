@@ -13,17 +13,7 @@
 ;;; ROM sets this address
 screen0	 equ $2000
 
- BEGIN_ZP
-path_length	ds 1
-plot_color	ds 1
-plot_x		ds 1
-plot_y		ds 1
-seed		ds 4
-dir		ds 1
-tmp		ds 1
-ptr		ds 2
-
- END_ZP
+	include "monalynx.var"
 
 	run $232		; first byte after decrypted header
 
@@ -51,18 +41,18 @@ Start::
 	sta	seed,x
 	dex
 	bpl	.l1
+	and	#$82
 	sta	dir
 .noxor:
 	;; next pixel position
-	ldx	#0
-	bbs1	dir,.x		; bit 2 set => x, else y
-	inx
-.x
-	bbs7	dir,.minus	; bit 7 set => decrement else increment
-	inc	plot_x,x
+	lda	dir
+	asl
+	tax
+	bcs	.minus
+	inc	plot_y,x
 	dc.b	$AD		; Opcode: LDA nn => skip "dec plot_x,x"
 .minus
-	dec	plot_x,x
+	dec	plot_y,x
 
 	rmb7	plot_x		; == and #$7f
 	rmb7	plot_y
@@ -130,6 +120,7 @@ brush::
 	dc.w 0xAF9D, 0x312E, 0x96CE, 0x25A7, 0x9E37, 0x2C44, 0x2BB9, 0x2139
 
 End:
-size	set End-Start
+size	set End - $200
+oversize set size - 256
 
-	echo "Size:%dsize"
+	echo "Size:%dsize Oversize:%doversize"

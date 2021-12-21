@@ -4,7 +4,7 @@ all: lnx
 
 $(DEMO).o: $(DEMO).asm
 
-%.o: %.asm
+%.o: %.asm monalynx.var
 	lyxass -v $<
 
 bin: monaload.bin monalynx.bin
@@ -29,7 +29,7 @@ lnx: $(DEMO).lnx
 
 .PHONY: clean
 clean:
-	rm -f *.lyx *~ *.bin *.enc monaload.o *.equ
+	rm -f *.lyx *~ *.bin *.enc monaload.o
 
 .PHONY: erase
 erase:

@@ -1,0 +1,13 @@
+ BEGIN_ZP
+path_length	ds 1
+dir		ds 1
+plot_y		ds 1
+dummy		ds 3
+plot_x		ds 1
+plot_color	ds 1
+tmp		ds 1
+dummy2		ds 1
+ptr		ds 2
+seed		ds 4
+
+ END_ZP

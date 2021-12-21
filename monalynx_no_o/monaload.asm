@@ -11,17 +11,7 @@
 ;;; ROM sets this address
 screen0	 equ $2000
 
- BEGIN_ZP
-path_length	ds 1
-plot_color	ds 1
-plot_x		ds 1
-plot_y		ds 1
-seed		ds 4
-dir		ds 1
-tmp		ds 1
-ptr		ds 2
-
- END_ZP
+	include "monalynx.var"
 
 	RUN	$200
 StartLoad::
