@@ -1,0 +1,14 @@
+XOR Scroll
+Compo: Low-end 64B intro
+Platform: Atari Lynx
+          Felix will do as well.
+Size: 64 (2 bytes only filler)
+Author/Group: 42Bastian
+Release: L<3vebyte Party 2022
+Files:
+xor_scroll.lnx     - Ready for Felix or to be flashed
+xor_scroll.bin     - raw intro
+xor_scroll.asm     - source
+xor_scroll.mp4     - Short video (to be done)
+-------------------------------------------------------------------------------
+Source will be published on https://github.com/42Bastian/lynx_hacking

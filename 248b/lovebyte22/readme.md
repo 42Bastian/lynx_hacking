@@ -12,6 +12,8 @@ pinkTunnel - reworked of TUEF to get it down to 128, but failed :(
 
 ## 64B
 
+xor_scroll - XOR pattern with hardware scrolling
+
 ## 128B
 
 ## 256B
