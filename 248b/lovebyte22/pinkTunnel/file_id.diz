@@ -1,0 +1,12 @@
+pinkTunnel - Tunnel
+Compo: Out of compop
+Platform: Atari Lynx (Felix will do as well)
+Size: 190
+Author/Group: 42Bastian
+Release: L<3vebyte Party 2022
+Files:
+pinkTunnel.lnx - Ready for handy or mednafen or to be flashed
+pinkTunnel.bin - raw bootsector, no header
+pinkTunnel.asm - Source
+----------------------------------------------------------------------
+Source will be published on https://github.com/42Bastian/lynx_hacking

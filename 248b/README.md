@@ -52,6 +52,10 @@ A 32 Byte demo, written for LoveByte 2021, but did not make it into the compo.
 
 Lovebyte 2021 Party Entries
 
+## Lovebyte22
+
+Lovebyte 2022 Party Entries
+
 ## NOISE
 
 Quick hack entry (due to lack of a good idea) for SV 2020+1 (Summer Edition)
