@@ -16,6 +16,8 @@ xor_scroll - XOR pattern with hardware scrolling
 
 ## 128B
 
+pinkDive - moving square pattern with "music"
+
 ## 256B
 
 ## Nanogame

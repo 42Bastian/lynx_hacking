@@ -1,0 +1,13 @@
+pinkDive
+Compo: Low-end 128B intro
+Platform: Atari Lynx
+          Felix will do as well.
+Size: 128
+Author/Group: 42Bastian
+Release: L<3vebyte Party 2022
+Files:
+pinkDive.lnx     - Ready for Felix or to be flashed
+pinkDive.bin     - raw intro
+pinkDive.asm     - source
+-------------------------------------------------------------------------------
+Source will be published on https://github.com/42Bastian/lynx_hacking
