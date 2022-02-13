@@ -1,0 +1,13 @@
+splitscreen_16b
+Compo: Low-end 16B intro
+Platform: Atari Lynx
+          Emulators won't do.
+Size: 16
+Author/Group: 42Bastian
+Release: L<3vebyte Party 2022
+Files:
+splitscreen_16b.lnx     - Ready for Felix or to be flashed
+splitscreen_16b.bin     - raw intro
+splitscreen_16b.jpg     - picture, nothing moves
+-------------------------------------------------------------------------------
+Source will be published on https://github.com/42Bastian/lynx_hacking
