@@ -1,0 +1,16 @@
+pinkTris - A tetris like game
+Compo: Low-end Nano-Game
+Platform: Atari Lynx
+          Felix will do as well.
+          With Lynx GD the borders are't visible as colortable is cleared by FW.
+          Lynx must be cold booted else left/right is swapped!
+Size: 256
+Author/Group: 42Bastian
+Release: L<3vebyte Party 2022
+Files:
+PinkTris.lnx     - Ready for handy or mednafen or to be flashed
+PinkTris.bin     - raw game
+PinkTris.mp4     - Short video
+micro_loader.asm - Loader for the actual game (Lynx boot code is max. 249)
+-------------------------------------------------------------------------------
+Source will be published on https://github.com/42Bastian/lynx_hacking

@@ -29,3 +29,5 @@ pinkDive - moving square pattern with "music"
 ## 256B
 
 ## Nanogame
+
+pinkTris - A Tetris clone, crippled to fit into 256 bytes. It uses a loader, as the last 7 bytes for the 249 byte limit could not be squezzed.
