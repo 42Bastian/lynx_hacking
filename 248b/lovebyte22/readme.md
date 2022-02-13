@@ -9,6 +9,7 @@ pinkTunnel - reworked of TUEF to get it down to 128, but failed :(
 ## 16B
 
 checkerGlitch - Using HBL/VBL to create an XOR pattern
+
 splitScreen -  HBL trickery
 
 ## 32B
