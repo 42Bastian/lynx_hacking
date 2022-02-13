@@ -6,6 +6,10 @@ pinkTunnel - reworked of TUEF to get it down to 128, but failed :(
 
 ## 8B
 
+waves_8b - pinkish waves
+
+steps_8b - An emulator test :-)
+
 ## 16B
 
 checkerGlitch - Using HBL/VBL to create an XOR pattern

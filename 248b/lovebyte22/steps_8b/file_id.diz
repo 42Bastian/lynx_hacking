@@ -1,0 +1,13 @@
+steps_8b
+Compo: Low-end 8B intro
+Platform: Atari Lynx
+          Emulators won't do.
+Size: 16
+Author/Group: 42Bastian
+Release: L<3vebyte Party 2022
+Files:
+steps_8b.lnx     - Ready for Felix or to be flashed
+steps_8b.bin     - raw intro
+steps_8b.jpg     - picture, nothing moves
+-------------------------------------------------------------------------------
+Source will be published on https://github.com/42Bastian/lynx_hacking
