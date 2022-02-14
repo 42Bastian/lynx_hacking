@@ -30,7 +30,7 @@
 
 ## 256B
 
-[PurpleRay](PurpleRay] - a ray caster
+[PurpleRay](PurpleRay) - a ray caster
 
 ## Nanogame
 
