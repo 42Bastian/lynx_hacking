@@ -1,0 +1,12 @@
+PurpleRay - Ray caster
+Compo: Low-end 256 byte
+Platform: Atari Lynx (Felix will do as well)
+Size: 249
+Author/Group: 42Bastian
+Release: L<3vebyte Party 2022
+Files:
+PurpleRay.lnx - Ready for handy or mednafen or to be flashed
+PurpleRay.bin - raw bootsector, no header
+PurpleRay.mp4 - Short video
+----------------------------------------------------------------------
+Source will be published on https://github.com/42Bastian/lynx_hacking
