@@ -18,6 +18,8 @@
 
 ## 32B
 
+[Moving bar](moving_bar_32b) - A moving raster bar
+
 ## 64B
 
 [xor_scroll](xor_scroll) - XOR pattern with hardware scrolling

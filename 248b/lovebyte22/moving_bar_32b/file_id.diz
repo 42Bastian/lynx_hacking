@@ -1,0 +1,13 @@
+MovingBar
+Compo: Low-end 32B intro
+Platform: Atari Lynx
+          Felix will do as well.
+Size: 32
+Author/Group: 42Bastian
+Release: L<3vebyte Party 2022
+Files:
+moving_bar_32b.lnx     - Ready for Felix or to be flashed
+moving_bar_32b.bin     - raw intro
+moving_bar_32b.mp4     - Short video
+-------------------------------------------------------------------------------
+Source will be published on https://github.com/42Bastian/lynx_hacking
