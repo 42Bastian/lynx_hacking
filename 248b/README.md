@@ -6,6 +6,11 @@ So projects here will fit into the _bootsector_ of a Lynx card.
 Actually, it seems 249 bytes are possible, but the ROM checks are weird, and
 sometimes code must be moved/rearranged to pass it.
 
+
+## [snake](snake)
+
+Lovebyte 2023 Entry: A snake game in 249 bytes
+
 ## [Plasma 1](plasma1)
 
 This is my first try of a plasma effect. Press a button for a funny side-effect.
