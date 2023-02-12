@@ -1,0 +1,26 @@
+# -*-makefile-#-
+ifneq ($(findstring darwin,$(OSTYPE)),)
+SENDOBJ=$(BLL_ROOT)/sendobj.js/sendobj.js
+COM?=/dev/tty.usbserial-FT63V37G
+else
+SENDOBJ=sendobj
+COM?=COM7
+endif
+
+BAUD?=1000000
+
+.PHONY: send
+send: $(DEMO).o
+	$(SENDOBJ) -b $(BAUD) -p $(COM) $<
+
+.PHONY: erase
+erase:
+	flash_up.exe -b $(BAUD) -p $(COM) -e
+
+.PHONY: flash
+flash: lnx
+	flash_up.exe -b $(BAUD) -p $(COM) -f $(DEMO).lnx
+
+.PHONY: sram
+sram: lnx
+	sram_up.exe -b $(BAUD) -p $(COM) -w $(DEMO).lnx
