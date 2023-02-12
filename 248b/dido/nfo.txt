@@ -1,0 +1,7 @@
+; dido - white flag
+; 256 Byte (actually 249) intro
+; Runs on Felix, Handy and of course read hardware.
+; dido.bin - raw program
+; dido.lnx - Lynx ROM
+; dido.png - Full size image
+; dido_pouet.jpg - Reduced size image
