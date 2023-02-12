@@ -1,0 +1,11 @@
+rasta128 - raster bars
+Compo: 128 Old school
+Platform: Atari Lynx (Felix will do as well)
+Size: 126
+Author/Group: 42Bastian
+Release: L<3vebyte Party 2023
+Files:
+rasta128.lnx - Ready for Felix or Handy
+rasta128.bin - raw bootsector, no header
+----------------------------------------------------------------------
+Source will be published on https://github.com/42Bastian/lynx_hacking
