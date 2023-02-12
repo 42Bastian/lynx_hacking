@@ -1,0 +1,12 @@
+Snake249 - A boot game
+Compo: Nano game
+Platform: Atari Lynx (Felix will do as well)
+Size: 249
+Author/Group: 42Bastian
+Release: L<3vebyte Party 2023
+Files:
+snake.lnx - ROM for real HW
+snake_felix.lnx - ROM for Felix or Handy
+snake.bin - raw bootsector, no header
+----------------------------------------------------------------------
+Source will be published on https://github.com/42Bastian/lynx_hacking
