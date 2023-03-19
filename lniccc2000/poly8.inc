@@ -88,7 +88,6 @@ triangle8_:
 	tax
 	sta .tri_scb_ysize+1
 	lda reci_lo-1,x
-	sei
 	sta MATHE_C
 	lda reci_hi-1,x
 	sta MATHE_C+1
@@ -97,34 +96,31 @@ triangle8_:
 	lda px2
 	sbc px1
 	_IFNE
-	_IFCC
-	  iny
-	  eor #$ff
-	  inc
-	_ENDIF
-	stz MATHE_E
-	sta MATHE_E+1
-	WAITSUZY
-	tya
-	_IFEQ
-	  sec
-	  sbc MATHE_A+2
-	  tax
-	  tya
-	  sbc MATHE_A+3
-	  cli
-	  dey
-	_ELSE
-	  ldx MATHE_A+2
-	  lda MATHE_A+3
-	  cli
-	  _IFMI
-	    lda #0
-	    tax
+	  _IFCC
+	    iny
+	    eor #$ff
+	    inc
 	  _ENDIF
-	_ENDIF
+	  stz MATHE_E
+	  sta MATHE_E+1
+	  WAITSUZY
+	  tya
+	  _IFEQ
+	    sec
+	    sbc MATHE_A+2
+	    tax
+	    tya
+	    sbc MATHE_A+3
+	    dey
+	  _ELSE
+	    ldx MATHE_A+2
+	    lda MATHE_A+3
+	    _IFMI
+	      lda #0
+	      tax
+	    _ENDIF
+	  _ENDIF
 	_ELSE
-	  cli
 	  tax
 	_ENDIF
 	sta tiltAB+1
@@ -136,7 +132,7 @@ triangle8_:
 	sbc py1
 	tax
 	lda reci_lo,x
-	sei
+
 	sta MATHE_C
 	lda reci_hi,x
 	sta MATHE_C+1
@@ -145,36 +141,32 @@ triangle8_:
 	lda px3
 	sbc px1
 	_IFNE
-	_IFCC
-	  iny
-	  eor #$ff
-	  inc
-	_ENDIF
-
-	stz MATHE_E
-	sta MATHE_E+1
-	WAITSUZY
-	tya
-	_IFEQ
-	  sec
-	  sbc MATHE_A+2
-	  tax
-	  tya
-	  sbc MATHE_A+3
-	  cli
-	  dey
-	_ELSE
-	  ldx MATHE_A+2
-	  lda MATHE_A+3
-	  cli
-	  _IFMI
-	    lda #0
-	    tax
+	  _IFCC
+	    iny
+	    eor #$ff
+	    inc
 	  _ENDIF
-	_ENDIF
+	  stz MATHE_E
+	  sta MATHE_E+1
+	  WAITSUZY
+	  tya
+	  _IFEQ
+	    sec
+	    sbc MATHE_A+2
+	    tax
+	    tya
+	    sbc MATHE_A+3
+	    dey
+	  _ELSE
+	    ldx MATHE_A+2
+	    lda MATHE_A+3
+	    _IFMI
+	      lda #0
+	      tax
+	    _ENDIF
+	  _ENDIF
 	_ELSE
 	  tax
-	  cli
 	_ENDIF
 	sta tiltAC+1
 	sta temp+1
@@ -187,8 +179,10 @@ triangle8_:
 	sbc py2
 	sta .tri_scb2_ysize+1
 	tax
+	ora .tri_scb_ysize+1
+	beq .exit
+
 	lda reci_lo,x
-	sei
 	sta MATHE_C
 	lda reci_hi,x
 	sta MATHE_C+1
@@ -197,14 +191,14 @@ triangle8_:
 	lda px3
 	sbc px2
 	_IFNE
-	_IFCC
-	  iny
-	  eor #$ff
-	  inc
-	_ENDIF
-	stz MATHE_E
-	sta MATHE_E+1
-	WAITSUZY
+	  _IFCC
+	    iny
+	    eor #$ff
+	    inc
+	  _ENDIF
+	  stz MATHE_E
+	  sta MATHE_E+1
+	  WAITSUZY
 	  tya
 	  _IFEQ
 	    sec
@@ -212,12 +206,10 @@ triangle8_:
 	    tax
 	    tya
 	    sbc MATHE_A+3
-	    cli
 	    dey
 	  _ELSE
 	    ldx MATHE_A+2
 	    lda MATHE_A+3
-	    cli
 	    _IFMI
 	      lda #0
 	      tax
@@ -225,7 +217,6 @@ triangle8_:
 	  _ENDIF
 	_ELSE
 	  tax
-	  cli
 	_ENDIF
 	stx tiltBC
 	sta tiltBC+1
@@ -236,6 +227,7 @@ triangle8_:
 	_ENDIF
 	SUBW tiltAC,tiltAB,.tri_scb_stretch
 	_IFMI
+.exit
 	  rts
 	_ENDIF
 	MOVE tiltAC,.tri_scb_tilt
@@ -257,13 +249,10 @@ triangle8_:
 	LDAY .tri_scb
 	ldx .tri_scb_ysize+1
 	_IFEQ
-	  ldx .tri_scb2_ysize+1
-	  _IFNE
-	    inc .tri_scb2_ysize+1
-	  _ENDIF
+	  inc .tri_scb2_ysize+1
 	  LDAY .tri_scb2
 	_ENDIF
-_DrawSprite:
+_DrawSprite:		; <= called by main code to draw a sprite
 	sta $fc10
 	sty $fc11
 	lda #1

@@ -183,9 +183,7 @@ main:
 	  inc	frame+1
 	_ENDIF
  ENDIF
-	dec	SWITCHFlag
-.wvbl	lda	SWITCHFlag
-	bne .wvbl
+	SWITCHBUF
 
 .noflip
 	jsr	play
@@ -469,10 +467,7 @@ poly:
 
 VBL::
 	phy
-	_IFNE SWITCHFlag
-	stz SWITCHFlag
-	_ENDIF
-	_IFMI
+	_IFMI SWITCHFlag
 	stz SWITCHFlag
 	ldx ScreenBase
 	ldy ScreenBase+1
@@ -646,7 +641,11 @@ chn4:
 title:
 	ibytes "title1.spr"
 
+;;; ----------------------------------------
+;;; Start song (all scores at the same time)
 startSong:
+	php
+	sei
 	lda #<chn1
 	ldy #>chn1
 	ldx #0
@@ -661,11 +660,15 @@ startSong:
 	ldy #>chn3
 	ldx #2
 	jsr abc_set_score
+
 	lda #<chn4
 	ldy #>chn4
 	ldx #3
-	jmp abc_set_score
-
+	jsr abc_set_score
+	plp
+	rts
+;;; ----------------------------------------
+;;; Init code, will be overwritten
 init:
 	START_UP		; set's system to a known state
 	CLEAR_ZP		; clear zero-page
