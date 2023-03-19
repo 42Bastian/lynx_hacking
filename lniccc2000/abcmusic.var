@@ -1,0 +1,9 @@
+; vars for ABC-music
+
+ BEGIN_ZP
+abc_tmp		dw 0
+abc_by8		db 0
+abc_repeat_offs
+	db 0,0,0,0
+abc_score_ptr	dw 0
+ END_ZP
