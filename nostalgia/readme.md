@@ -4,4 +4,4 @@ Replay routine for the orginal (un-altered) "Vanessa on nostalgia trip" demo dat
 
 Drawn directly from card.
 
-Only single direction.
+~~Only single direction~~
