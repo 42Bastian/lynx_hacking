@@ -55,8 +55,9 @@ code		ds 1
 color		ds 1
 irq_vektoren	ds 16
 
-ptr_x		ds 2
-ptr_y		ds 2
+frameInfo	ds 2
+dir		ds 1
+lastTime	ds 2
 
 x1		ds 1
 x2		ds 1
@@ -83,42 +84,21 @@ Start::				; Start-Label needed for reStart
 	jmp	init
 main:
 	INITFONT LITTLEFNT,0,15
-.again
+
 	SETRGB pal		; set palette
 
 	lda	#160
 	sta	cls_size+1
-
 	jsr	printHello
-	lda	rerun
-	beq	.skip_time
-
-	SET_XY	0,0		; set FONT-cursor
-	LDAY	info1
-	jsr	print
-	pla
-	jsr	PrintHex
-	pla
-	jsr	PrintHex
-	LDAY	ms
-	jsr	print
-.skip_time
 	SWITCHBUF
 	jsr	printHello
+	lda	#128
+	sta	cls_size+1
 
+.again
 	lda	#SCENE_1ST_BLOCK
 	sta	CurrBlock
 	jsr	SelectBlock
-
-	lda	rerun
-	_IFNE
-.w0
-	lda	$fcb0
-	beq	.w0
-	_ENDIF
-
-	lda	#128
-	sta	cls_size+1
 
 	lda	_1000Hz		; sync on interrupt
 .wait	cmp	_1000Hz
@@ -126,7 +106,6 @@ main:
 
 	stz	_1000Hz
 	stz	_1000Hz+1
-	stz	_1000Hz+2
 
  IFD FRAMECOUNTER
 	stz	frame
@@ -134,16 +113,27 @@ main:
  ENDIF
 
 .next_frame
- IFD FRAMECOUNTER
-	inc	frame
-	_IFEQ
-	  inc	frame+1
+	_IFEQ	rerun
+	  jsr	storePos
+	_ELSE
+	   jsr	seekPos
 	_ENDIF
- ENDIF
+
 	CLS	#0
 	jsr	play
 	sta	code
 	jsr	drawFrame
+	_IFNE	rerun
+	SET_XY	0,0		; set FONT-cursor
+	LDAY	info1
+	jsr	print
+	lda	lastTime+1
+	jsr	PrintHex
+	lda	lastTime
+	jsr	PrintHex
+	LDAY	ms
+	jsr	print
+	_ENDIF
  IFD FRAMECOUNTER
 	SET_XY	0,0		; set FONT-cursor
 	lda	frame+1
@@ -152,16 +142,38 @@ main:
 	jsr	PrintHex
  ENDIF
 	SWITCHBUF
-
-	lda	code
-	cmp	#$fe
-	beq	.next_frame
+	_IFEQ dir
+	  inc	frame
+	  _IFEQ
+	    inc	frame+1
+	  _ENDIF
+	  lda	frame+1
+	  cmp	#>423
+	  bne	.next_frame
+	  lda	frame
+	  cmp	#<423
+	  bne	.next_frame
+	_ELSE
+	  sec
+	  lda frame
+	  sbc #1
+	  sta frame
+	  _IFCC
+	    dec frame+1
+	  _ENDIF
+	  ora	frame+1
+	  bne	.next_frame
+	_ENDIF
 
 .endofscene
+	lda	#1
+	eor	dir
+	sta	dir
+
 	lda	_1000Hz
-	pha
+	sta	lastTime
 	lda	_1000Hz+1
-	pha
+	sta	lastTime+1
 	tsb	rerun
 	jmp	.again
 
@@ -209,7 +221,7 @@ frameSCB::
 
 
 ;;; ----------------------------------------
-play
+play::
 	jsr	getbyte
 	cmp	#$fe
 	beq	.done
@@ -219,17 +231,15 @@ play
 	sta	color
 	and	#$f
 	sta	points
-	ldx	#0
-	tay
+	tax
 .getcoor
 	jsr	getbyte
 	lsr
-	sta	x1,x
+	sta	x1-1,x
 	jsr	getbyte
 	lsr
-	sta	y1,x
-	inx
-	dey
+	sta	y1-1,x
+	dex
 	bne	.getcoor
 
 	jsr	poly
@@ -262,6 +272,67 @@ poly:
 	  inx
 	  dec	points
 	  bne	.nxtp
+	_ENDIF
+	rts
+
+storePos::
+	lda	CurrBlock
+	dec
+	sta	(frameInfo)
+	lda	BlockByte+1
+	ldy	#2
+	sta	(frameInfo),y
+	dey
+	lda	BlockByte
+	sta	(frameInfo),y
+	clc
+	lda	frameInfo
+	adc	#3
+	sta	frameInfo
+	_IFCS
+	  inc	frameInfo+1
+	_ENDIF
+	rts
+
+seekPos::
+	lda	(frameInfo)
+	sta	CurrBlock
+	jsr	SelectBlock
+	ldy	#1
+	lda	(frameInfo),y
+	sta	BlockByte
+	eor	#$ff
+	tax
+	iny
+	lda	(frameInfo),y
+	sta	BlockByte+1
+	eor	#$7
+	tay
+.l	inx
+	_IFEQ
+	  iny
+	  beq	.exit
+	_ENDIF
+	lda	$fcb2
+	bra	.l
+
+.exit
+	_IFEQ	dir
+	clc
+	lda	#3
+	adc	frameInfo
+	sta	frameInfo
+	_IFCS
+	  inc	frameInfo+1
+	_ENDIF
+	_ELSE
+	sec
+	lda	frameInfo
+	sbc	#3
+	sta	frameInfo
+	_IFCC
+	  dec	frameInfo+1
+	_ENDIF
 	_ENDIF
 	rts
 
@@ -430,7 +501,7 @@ init:
         SETIRQ 2,VBL
 	SCRBASE screen0,screen1
 	MOVE	ScreenBase,VIDBAS
-
+	  MOVEI	framePositions,frameInfo
 	cli
 	jmp	main
 
@@ -447,8 +518,13 @@ Init1000Hz::
 	SETIRQVEC _1000HZ_TIMER,_1000HzIRQ
 	plp
 	rts
+
+framePositions:
+	ds	425*3
 end:
-free	equ screen1-init
+
+free	equ screen1-end
+	echo "fi: %HframePositions"
 	echo "init: %hinit"
 	echo "end: %hend"
 	echo "screen0:%Hscreen0"
