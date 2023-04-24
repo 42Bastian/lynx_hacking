@@ -55,9 +55,9 @@ ptr		ds 2
 ptr1		ds 2
 ptr2		ds 2
 counter		ds 1
-winkel		ds 1
-winkel_nk	ds 1  ; Nachkomma
-winkel_add1	ds 1
+angle		ds 1
+angle_dp	ds 1  ; Nachkomma
+angle_add1	ds 1
 amplitude	ds 1
 frame_counter	ds 1
 *********************
@@ -89,7 +89,7 @@ Start::
 	INITKEY
 	INITFONT LITTLEFNT,RED,WHITE
 	jsr Init1000Hz
-	FRAMERATE 60
+	FRAMERATE 50
 	jsr InitComLynx
 	SETIRQ 2,VBL
 	SCRBASE screen0,screen1
@@ -107,9 +107,9 @@ Start::
 	lda #20
 	sta amplitude
 	stz counter
-	stz winkel
+	stz angle
 	lda #$e0
-	sta winkel_add1
+	sta angle_add1
 	stz _1000Hz
 	stz _1000Hz+1
 again::
@@ -156,7 +156,7 @@ x::
 	jmp again
 ****************
 VBL::
-	inc winkel
+	inc angle
 	jsr Keyboard
 	IRQ_SWITCHBUF
 	END_IRQ
@@ -164,9 +164,9 @@ VBL::
 DrawSCBs5::
  IF 1
 	ldy #101
-	ldx winkel
+	ldx angle
 	phx
-	lda winkel_nk
+	lda angle_dp
 	pha
 .loop
 	  lda amplitude
@@ -194,18 +194,18 @@ DrawSCBs5::
 	  ply
 
 	  clc
-	  lda winkel_nk
-	  adc winkel_add1
-	  sta winkel_nk
+	  lda angle_dp
+	  adc angle_add1
+	  sta angle_dp
 	  bcc	.noc
 	   inx
 .noc
 	  dey
 	bpl .loop
 	pla
-	sta winkel_nk
+	sta angle_dp
 	pla
-	sta winkel
+	sta angle
  ENDIF
 	lda #<SCB0
 	ldy #>SCB0
@@ -214,9 +214,9 @@ DrawSCBs5::
 DrawSCBs4::
 	ldy #101
 	stz SCBy
-	ldx winkel
+	ldx angle
 	phx
-	lda winkel_nk
+	lda angle_dp
 	pha
 .loop	  lda scbtab,y
 	  sta SCBDATA+2
@@ -239,9 +239,9 @@ DrawSCBs4::
 	  sta SCBx+1
 
 	  clc
-	  lda winkel_nk
-	  adc winkel_add1
-	  sta winkel_nk
+	  lda angle_dp
+	  adc angle_add1
+	  sta angle_dp
 	  bcc .noc
 	    inx
 .noc
@@ -255,9 +255,9 @@ DrawSCBs4::
 	  dey
 	bpl .loop
 	pla
-	sta winkel_nk
+	sta angle_dp
 	pla
-	sta winkel
+	sta angle
 	rts
 ****************
 _cls::	lda #<clsSCB
