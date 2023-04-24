@@ -51,15 +51,15 @@ ptr		ds 2
 ptr1		ds 2
 ptr2		ds 2
 counter		ds 1
-winkel		ds 1
-winkel_nk	ds 1  ; Nachkomma
-winkel_add1	ds 1
+angle		ds 1
+angle_dp	ds 1  ; decimal point
+angle_add1	ds 1
 amplitude	ds 1
 frame_counter	ds 1
-x	ds 2
-x1	ds 2
-y	ds 2
-tmp	ds 1
+x		ds 2
+x1		ds 2
+y		ds 2
+tmp		ds 1
 *********************
  END_ZP
 
@@ -109,9 +109,9 @@ Start::
 	lda #20
 	sta amplitude
 	stz counter
-	stz winkel
+	stz angle
 	lda #$f0
-	sta winkel_add1
+	sta angle_add1
 	stz _1000Hz
 	stz _1000Hz+1
 	jsr MakeChainedSCBs
@@ -143,7 +143,7 @@ inc:
 	  lda _1000Hz
 	  jsr PrintHex
 	  DoSWITCH
-	  dec $fda0
+//->	  dec $fda0
 	  stz _1000Hz
 	  inc counter
 	bne .loop
@@ -153,7 +153,7 @@ inc:
 	jmp again
 ****************
 VBL::
-	inc winkel
+	inc angle
 	jsr Keyboard
 	IRQ_SWITCHBUF
 	END_IRQ
@@ -161,9 +161,9 @@ VBL::
 DrawSCBs5::
  IF 1
 	ldy #0
-	ldx winkel
+	ldx angle
 	phx
-	lda winkel_nk
+	lda angle_dp
 	pha
 .loop
 	  lda amplitude
@@ -254,9 +254,9 @@ DrawSCBs5::
 	bne .loopx
 	plx
 	  clc
-	  lda winkel_nk
-	  adc winkel_add1
-	  sta winkel_nk
+	  lda angle_dp
+	  adc angle_add1
+	  sta angle_dp
 	  bcc	.noc
 	   inx
 .noc
@@ -265,9 +265,9 @@ DrawSCBs5::
 	jmp .loop
 .exit
 	pla
-	sta winkel_nk
+	sta angle_dp
 	pla
-	sta winkel
+	sta angle
  ENDIF
 	lda #<SCB0
 	ldy #>SCB0
@@ -284,7 +284,7 @@ clsSCB
 	dc.w 0,0
 	dc.w $100*10,$100*102
 clsCOLOR
-	dc.b $04
+	dc.b $00
 clsDATA
 	dc.b 2,%01111100
 	dc.b 0
@@ -401,7 +401,7 @@ SCB0
 	dc.w -1		; y
 size:
 	dc.w $100,$100	; size
-	dc.b $01,$23,$45,$67,$89,$AB,$CD,$E0
+	dc.b $01,$23,$45,$67,$89,$AB,$CD,$EF
 SCB0_data:
 	dc.b 2,0,0
 
