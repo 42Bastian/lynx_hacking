@@ -83,3 +83,7 @@ Recursive maze generator. #8 in Bytesize compo at Inercia 2021. :.(
 ## [sv2k21](sv2k21)
 
 SillyVenture 2021 (Winter Edition) Entries
+
+## juliaWalk
+
+Entry for Evoke 2023: Julia set walk in real time

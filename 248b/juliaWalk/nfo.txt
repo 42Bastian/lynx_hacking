@@ -1,0 +1,11 @@
+JuliaWalk - Walk Julia set in "real time"
+Compo: Old School 8 Bit
+Platform: Atari Lynx (Felix will do as well)
+Size: 249
+Author/Group: 42Bastian
+Release: Evoke 2023
+Files:
+julia.lnx - Ready for Felix or Handy
+julia.bin - raw bootsector, no header
+----------------------------------------------------------------------
+Source will be published on https://github.com/42Bastian/lynx_hacking
