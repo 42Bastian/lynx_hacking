@@ -1,0 +1,10 @@
+rottoprojoLynx - An adaption of rottoprojoXL/64
+Platform: Atari Lynx (Felix will do as well), will not work from LynxGD
+Size: 249
+Author/Group: 42Bastian
+Release: Sillyventure 2023 SE
+Files:
+rottoprojoLynx.bin - raw image
+rottoprojoLynx.lnx - ready to flash/run with Felix
+----------------------------------------------------------------------
+Source will be published on https://github.com/42Bastian/lynx_hacking

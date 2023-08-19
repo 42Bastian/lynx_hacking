@@ -87,3 +87,7 @@ SillyVenture 2021 (Winter Edition) Entries
 ## juliaWalk
 
 Entry for Evoke 2023: Julia set walk in real time
+
+## rottoprojoLynx
+
+Rotating "cube". A port of rottoprojoxl/64 to the Lynx.
