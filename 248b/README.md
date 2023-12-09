@@ -84,10 +84,10 @@ Recursive maze generator. #8 in Bytesize compo at Inercia 2021. :.(
 
 SillyVenture 2021 (Winter Edition) Entries
 
-## juliaWalk
+## [juliaWalk](juliaWalk)
 
 Entry for Evoke 2023: Julia set walk in real time
 
-## rottoprojoLynx
+## [rottoprojoLynx](rottoprojoLynx)
 
 Rotating "cube". A port of rottoprojoxl/64 to the Lynx.
