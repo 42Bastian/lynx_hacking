@@ -91,3 +91,7 @@ Entry for Evoke 2023: Julia set walk in real time
 ## [rottoprojoLynx](rottoprojoLynx)
 
 Rotating "cube". A port of rottoprojoxl/64 to the Lynx.
+
+## [twister249](twister249)
+
+Twister with raster background (SV 2023 entry)
