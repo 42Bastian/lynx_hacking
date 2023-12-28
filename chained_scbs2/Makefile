@@ -1,10 +1,9 @@
-chained_scbs.o: chained_scbs.asm sprites/*.inc
+DEMO=chained_scbs
+
+chained_scbs.o: chained_scbs.asm sprites/sprites.inc
 	lyxass -shex $<
 
-.PHONY: send
-send: chained_scbs.o
-	sendobj -b 62500 -p com7 $<
-
-.PHONY: sprites
-sprites:
+sprites/sprites.inc:
 	$(MAKE) -C sprites sprites
+
+include ../Rules.launch

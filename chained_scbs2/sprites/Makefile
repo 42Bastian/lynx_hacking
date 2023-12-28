@@ -1,7 +1,7 @@
 .PHONY: sprites
 .ONESHELL:
 sprites:
-	@sprpck.exe -S016010 -r010010 phobyx.pcx
+	@sprpck -S016010 -r010010 phobyx.pcx
 	rm -f sprites.inc
 	echo "sprite_addr_lo:" > spriteaddrlo.inc
 	echo "sprite_addr_hi:" > spriteaddrhi.inc
