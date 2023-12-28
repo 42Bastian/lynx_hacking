@@ -1,9 +1,12 @@
-# -*-makefile-#-
+# -*-makefile-*-
 ifneq ($(findstring darwin,$(OSTYPE)),)
-SENDOBJ=$(BLL_ROOT)/sendobj.js/sendobj.js
+#SENDOBJ=$(BLL_ROOT)/sendobj.js/sendobj.js
+SENDOBJ=python3 $(BLL_ROOT)/sendobj.py/sendobj.py -q
+FLASHER=python3 $(BLL_ROOT)/flash_up.py/flash_up.py -q
 COM?=/dev/tty.usbserial-FT63V37G
 else
-SENDOBJ=sendobj
+SENDOBJ=sendobj.exe
+FLASHER=flash_up.exe
 COM?=COM7
 endif
 
@@ -15,11 +18,11 @@ send: $(DEMO).o
 
 .PHONY: erase
 erase:
-	flash_up.exe -b $(BAUD) -p $(COM) -e
+	@$(FLASHER) -b $(BAUD) -p $(COM) -e
 
 .PHONY: flash
 flash: lnx
-	flash_up.exe -b $(BAUD) -p $(COM) -f $(DEMO).lnx
+	@$(FLASHER) -b $(BAUD) -p $(COM) -e -f $(DEMO).lnx
 
 .PHONY: sram
 sram: lnx
