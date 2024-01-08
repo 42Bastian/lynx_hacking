@@ -4,9 +4,13 @@ ifneq ($(findstring darwin,$(OSTYPE)),)
 SENDOBJ=python3 $(BLL_ROOT)/sendobj.py/sendobj.py -q
 FLASHER=python3 $(BLL_ROOT)/flash_up.py/flash_up.py -q
 COM?=/dev/tty.usbserial-FT63V37G
+
+MACOS=@prlexec --vm "Windows 11" -r
+FELIX=$(MACOS) /fun/Felix.exe
 else
 SENDOBJ=sendobj.exe
 FLASHER=flash_up.exe
+FELIX=/fun/lynx/Felix.exe
 COM?=COM7
 endif
 
@@ -27,3 +31,11 @@ flash: lnx
 .PHONY: sram
 sram: lnx
 	sram_up.exe -b $(BAUD) -p $(COM) -w $(DEMO).lnx
+
+.PHONY: felix
+felix: $(DEMO).o
+	$(FELIX) $(DEMO).o
+
+.PHONY: felix_lnx
+felix_lnx: $(DEMO).lnx
+	$(FELIX) $(DEMO).lnx

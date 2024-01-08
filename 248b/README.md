@@ -95,3 +95,7 @@ Rotating "cube". A port of rottoprojoxl/64 to the Lynx.
 ## [twister249](twister249)
 
 Twister with raster background (SV 2023 entry)
+
+## [bubbleUniverse4Lynx](bubbleUniverse4Lynx)
+
+A monochrome port of the BubbleUniverse algo to the Lynx
