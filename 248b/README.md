@@ -68,6 +68,10 @@ Lovebyte 2021 Party Entries
 
 Lovebyte 2022 Party Entries
 
+## [Lovebyte24](lovebyte24)
+
+Lovebyte 2024 Party Entries
+
 ## [NOISE](noise)
 
 Quick hack entry (due to lack of a good idea) for SV 2020+1 (Summer Edition)
