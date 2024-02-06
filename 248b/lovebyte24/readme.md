@@ -2,7 +2,7 @@
 
 ## Invitation
 
-[3days](3days] - reworked LyLoBy intro
+[3days](3days) - reworked LyLoBy intro
 
 ## 8B
 
