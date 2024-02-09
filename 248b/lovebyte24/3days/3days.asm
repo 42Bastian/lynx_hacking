@@ -1,7 +1,7 @@
 ***************
 ** LoveByte 2024 Countdown - 3 days left
 ** (c) 2023 42Bastiam
-** 0 bytes free of 249
+** 1 bytes free of 249
 ****************
 
 	include <includes/hardware.inc>
@@ -51,30 +51,31 @@ HBL:
 	rti
 
 .cont:
-	lda	#$c
-	sta	$fff9		; map vectors to RAM
+	ldx	#$c
+	stx	$fff9		; map vectors to RAM
 	sty	$fffe		; IRQ vector $202
 	sty	$ffff
 
-	stz	$fda9
-	inc
-	sta	$fdb9
+	stz	$fdb1
 ;;; ----------------------------------------
-	tay
+
 	cli
 .copy
 ;;; Build 2nd SCB
-	  lda	plot_SCB+4,y
-	  sta	plot_SCB1+4,y
+	  lda	plot_SCB+5,x
+	  sta	plot_SCB1+5,x
 ;;; Init SUZY
-	  ldx	SUZY_addr-3,y
-	  lda	SUZY_data-3,y
-          sta	$fc00,x
-	dey
-	bne	.copy
+	  ldy	SUZY_addr-2,x
+	  lda	SUZY_data-2,x
+          sta	$fc00,y
+	  stz $fda0-1,x
+	dex
+	bpl	.copy
+//->	ldy	#0
 ;;; ----------------------------------------
 ;;; Create pattern
-	ldx	#%11110000
+	ldx	#%00001111
+	stx	$fdb9
 .loop
 	lda	#4
 	sta	(ptr),y
@@ -98,8 +99,9 @@ HBL:
 ;;; ----------------------------------------
 main::
 	lda	#128
-	tsb	$fd01		; enable interrupt
 	sta	pd1		; init start of sprite data
+	tsb	$fd01		; enable interrupt
+
 .loop
 	ldy	#<_3days_SCB
 	sty	SCBNEXT
@@ -118,8 +120,7 @@ main::
 
 	dec	_3days_y
 	bpl	.1
-	lda	#80
-	sta	_3days_y
+	lsr	_3days_y
 .1
 	sec
 	lda	pd1
@@ -197,9 +198,8 @@ free	set 249-size
 	ENDIF
 
  IFND LNX
-	;; Setup needed if loaded via BLL
-Init:
 
+Init:
 	;; Setup needed if loaded via BLL
 	lda	#8
 	sta	$fff9
@@ -210,16 +210,14 @@ Init:
 	lda	#$20
 	sta	DISPADRH
 
-	ldx	#15
+	ldx	#31
 	lda	#$ff
 .init
 	sta	GREEN0,x
-	sta	BLUERED0,x
-	sec
-	sbc	#$11
 	dex
 	bpl	.init
 	stz	$fdaf
+	stz	$fdbf
 
 	lda	#$ff
 	sta	$fc28
