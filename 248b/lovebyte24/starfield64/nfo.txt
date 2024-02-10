@@ -1,0 +1,10 @@
+; Title: starfield64
+; Compo: 64b oldschool
+; Author: 42Bastian
+; Info: This is an accident, but came out nice, so submited it ;-)
+;
+; Files:
+; starfield.bin  : Assembled intro
+; starfield.lnx  : Lynx ROM (runs in Felix, from GD and direct card)
+; starfield.asm  : Source (LYXASS syntax)
+; starfield.png  : screen shot

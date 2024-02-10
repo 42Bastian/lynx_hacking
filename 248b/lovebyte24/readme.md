@@ -12,6 +12,8 @@
 
 ## 64B
 
+[starfield64](starfield64) - A moving starfield.
+
 ## 128B
 
 ## 256B
