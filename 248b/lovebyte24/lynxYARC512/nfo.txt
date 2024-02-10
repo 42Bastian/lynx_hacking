@@ -1,0 +1,14 @@
+; Title: lynxYARC512
+; Compo: 512b oldschool
+; Author: 42Bastian
+; Info: Total size with loader is 512b - THX to pestis for tips!
+;       Lines are single sprites!
+;
+; Files:
+; lynxYARC512.bin  : Assembled intro
+; lynxYARC512.lnx  : Lynx ROM (runs in Felix, from GD and direct card)
+; lynxYARC512.asm  : Source (LYXASS syntax)
+; lynxYARC512.png  : screen shot
+
+; loader.bin : Loader needed as Lynx ROM loads at max 249 bytes
+; loader.asm : Source of above
