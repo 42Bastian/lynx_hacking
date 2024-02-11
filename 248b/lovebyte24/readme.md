@@ -10,6 +10,8 @@
 
 ## 256B
 
+[bubbleUniverse4LynxV2](bubbleUniverse4LynxV2) Extended bubble univers verion.
+
 ## 512B
 
 [lynxYARC512](lynxYARC512) - YetAnotherRotatingCube in 512b

@@ -1,0 +1,10 @@
+; Title: bu4lv2
+; Compo: 256b oldschool
+; Author: 42Bastian
+; Info: Bubble Universe for Lynx, reloaded.
+;
+; Files:
+; bu4l.bin  : Assembled intro
+; bu4l.lnx  : Lynx ROM (runs in Felix, from GD and direct card)
+; bu4l.asm  : Source (LYXASS syntax)
+; bu4l.png  : screen shot
