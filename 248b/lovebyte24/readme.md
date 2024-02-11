@@ -15,3 +15,5 @@
 [lynxYARC512](lynxYARC512) - YetAnotherRotatingCube in 512b
 
 ## Nanogame
+
+[schiebefix](schiebefix) A puzzle-15 game

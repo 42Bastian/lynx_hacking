@@ -1,0 +1,11 @@
+; Title: schiebefix
+; Compo: nanogame oldschool
+; Author: 42Bastian
+; Info: This is the 15-puzzle where you have to restore the picure by moving the
+;       tiles arround. Not every mixup is solvable!
+;
+; Files:
+; sf.bin  : Assembled intro
+; sf.lnx  : Lynx ROM (runs in Felix, from GD and direct card)
+; sf.asm  : Source (LYXASS syntax)
+; sf.png  : screen shot
