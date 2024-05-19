@@ -16,6 +16,13 @@ SCENE_1ST_BLOCK	equ 4
 SCENE_1ST_BLOCK	equ 3
  ENDIF
 
+ IFND USE_TSC
+LZ4	equ 1
+TSC	equ 0
+ ELSE
+LZ4	equ 0
+TSC	equ 1
+ ENDIF
 	include <includes/hardware.inc>
 * macros
 	include <macros/help.mac>
@@ -33,7 +40,11 @@ SCENE_1ST_BLOCK	equ 3
 	include <vardefs/irq.var>
 	include <vardefs/1000Hz.var>
 
+ IF LZ4 = 1
 	include "unlz4.var"
+ ELSE
+	include "untsc.var"
+ ENDIF
 	include "poly8.var"
 	include "abcmusic.var"
 *
@@ -125,11 +136,19 @@ main:
 
 	MOVEI	scene,dst
 	stz	token_count
+ IF LZ4 = 1
 	jsr	unlz4
+ ELSE
+	jsr	untsc
+ ENDIF
 	dey
 	bne	.w0
 .dounlz4
+ IF LZ4 = 1
 	jsr	unlz4_cont
+ ELSE
+	jsr	untsc_cont
+ ENDIF
 	dey
 	beq	.dounlz4
 .w0
@@ -171,9 +190,15 @@ main:
 
 	lda	depacking
 	beq	.noflip
+ IF LZ4
 	lda	#10
 	sta	token_count
 	jsr	unlz4		; initial depack of next chunk
+ ELSE
+	lda	#20
+	sta	token_count
+	jsr	untsc		; initial depack of next chunk
+ ENDIF
 	sty	depacking
 	bra	.noflip
 .loop
@@ -199,9 +224,15 @@ main:
 
 	lda	depacking
 	_IFNE
+ IF LZ4 = 1
 	  lda	#49
 	  sta	token_count
 	  jsr	unlz4_cont
+ ELSE
+	  lda	#70
+	  sta	token_count
+	  jsr	untsc_cont
+ ENDIF
 	  sty	depacking
 	_ENDIF
 
@@ -212,7 +243,11 @@ main:
 	ldy	depacking
 	_IFNE
 .dpk1
+ IF LZ4 = 1
 	  jsr	unlz4_cont
+ ELSE
+	  jsr	untsc_cont
+ ENDIF
 	  dey
 	  beq	.dpk1
 	_ENDIF
@@ -565,7 +600,11 @@ _1000HzIRQ::
 	include <includes/hexdez.inc>
 	include <includes/draw_spr.inc>
 	include "poly8.inc"
+ IF LZ4 = 1
 	include "unlz4_fast.inc"
+ ELSE
+	include "untsc.inc"
+ ENDIF
 	include "abcmusic.inc"
 
 pal:

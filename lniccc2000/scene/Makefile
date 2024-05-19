@@ -1,5 +1,6 @@
-LZ4=1
+LZ4=0
 EXO=0
+TSC=1
 
 XX=$(wildcard tmp/xx*.asm)
 XXB=$(XX:.asm=.bin)
@@ -40,6 +41,16 @@ ifeq ($(EXO),1)
 	done;
 	echo "exo $$t $$((512*1024-t))"
 endif
+ifeq ($(TSC),1)
+	@t=0
+	rm -f scene.bin.tsc
+	for i in tmp/xx*.bin.tsc; do
+	   s=$$(stat -c "%s" $$i)
+	   t=$$((t+s))
+	   cat $$i >> scene.bin.tsc
+	done;
+	echo "tsc: $$t free $$((512*1024-t))"
+endif
 
 tmp/%.asm: x.asm
 
@@ -52,6 +63,11 @@ endif
 ifeq ($(EXO),1)
 	@if [ ! -e scene.bin.exo ]; then
 	  touch scene.bin.exo
+	fi
+endif
+ifeq ($(TSC),1)
+	@if [ ! -e scene.bin.tsc ]; then
+	  touch scene.bin.tsc
 	fi
 endif
 	@lyxass -d -tl -x 0x1000 -o $@ $<
@@ -83,6 +99,10 @@ endif
 ifeq ($(EXO),1)
 	exomizer.exe raw -B -P-32 $@ -o $@.exo
 	cat $@.exo >> scene.bin.exo
+endif
+ifeq ($(TSC),1)
+	tscrunch -q $@ $@.tsc
+	cat $@.tsc >> scene.bin.tsc
 endif
 #	tp +l $@ -o $@.pck
 #	dd bs=1 skip=8 if=$@.pck of=$@.pck.a

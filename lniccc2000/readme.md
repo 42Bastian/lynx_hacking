@@ -19,3 +19,8 @@ And last but not least Lars Baumstark who was the driving force in the beginning
 Sage/Karri and others who helped to improve sprpck and lyxass.
 
 So in short, if someone coding for the Lynx claims he/she did all on his/her own, well chapeau. :( But why, only not to pay credit? Well, then.
+
+
+## Update
+
+Added second version using TSCruncher which depacks quicker (3%).

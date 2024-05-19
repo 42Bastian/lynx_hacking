@@ -26,14 +26,14 @@ erase:
 
 .PHONY: flash
 flash: lnx
-	flash_up.exe -b $(BAUD) -p $(COM) -f $(DEMO).lnx
+	flash_up.exe -b $(BAUD) -p $(COM) -f $(DEMO)$(DEMO_EXT).lnx
 
 .PHONY: sram
 sram: lnx
-	sram_up.exe -b $(BAUD) -p $(COM) -w $(DEMO).lnx
+	sram_up.exe -b $(BAUD) -p $(COM) -w $(DEMO)$(DEMO_EXT).lnx
 
 felix: $(DEMO).o
 	$(FELIX) $<
 
-felix_rom: $(DEMO).lnx
+felix_rom: $(DEMO)$(DEMO_EXT).lnx
 	$(FELIX) $<
