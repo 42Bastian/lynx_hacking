@@ -10,7 +10,7 @@
 
 ## 256B
 
-[bubbleUniverse4LynxV2](bubbleUniverse4LynxV2) Extended bubble univers verion.
+[bubbleUniverse4LynxV2](bubbleUniverse4LynxV2) Extended bubble univers version.
 
 ## 512B
 
