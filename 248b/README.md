@@ -103,3 +103,7 @@ Twister with raster background (SV 2023 entry)
 ## [bubbleUniverse4Lynx](bubbleUniverse4Lynx)
 
 A monochrome port of the BubbleUniverse algo to the Lynx
+
+## [lissa256](lissa256)
+
+Rotating lissajous with 256 dots for Sommarhack'24

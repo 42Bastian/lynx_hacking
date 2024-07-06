@@ -1,0 +1,12 @@
+;;; lissa256
+;;; Lynx Boot-intro for Sommarhack '24
+;;;
+;;; Author: 42Bastian
+;;; Compo: Intro 256b
+;;; Runs on Felix (enable BootROM!) and real HW
+;;;
+;;; Files:
+;;; lissa256.asm     - source (lyxass syntax)
+;;; lissa256.bin     - raw binary
+;;; lissa256.lnx     - ROM image
+;;; nfo.txt          - this file
