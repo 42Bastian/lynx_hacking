@@ -8,6 +8,11 @@ New BLL: https://github.com/42Bastian/new_bll
 
 lyxass: https://github.com/42Bastian/lyxass
 
+
+## [raycast](raycast)
+
+Raycasting algo based on the Jaguar version
+
 ## 248b
 
 Demos and intros with max. 249 bytes that fit into the _boot-sector_ of a Lynx card.
