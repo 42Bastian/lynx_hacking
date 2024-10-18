@@ -396,11 +396,13 @@ Start::
 	stz	side
 	CMPW	sideDistY,sideDistX
 	_IFCC
-	  lda	deltaDistX
-	  adc	sideDistX
+	  lda	sideDistX
+	  sta	perpWallDist
+	  adc	deltaDistX
 	  sta	sideDistX
-	  lda	deltaDistX+1
-	  adc	sideDistX+1
+	  lda	sideDistX+1
+	  sta	perpWallDist+1
+	  adc	deltaDistX+1
 	  sta	sideDistX+1
 
 	  clc
@@ -412,7 +414,16 @@ Start::
 	  sta world_ptr+1
 	_ELSE
 	  inc side
-	  ADDW	deltaDistY,sideDistY
+	  clc
+	  lda	sideDistY
+	  sta	perpWallDist
+	  adc	deltaDistY
+	  sta	sideDistY
+	  lda	sideDistY+1
+	  sta	perpWallDist+1
+	  adc	deltaDistY+1
+	  sta	sideDistY+1
+
 	  clc
 	  lda stepY
 	  adc world_ptr
@@ -434,27 +445,10 @@ Start::
 //->    if (side == 0) perpWallDist = (sideDistX - deltaDistX);
 //->    else           perpWallDist = (sideDistY - deltaDistY);
 
-	_IFEQ side
-	sec
-	lda	sideDistX
-	sbc	deltaDistX
-//->	sta	perpWallDist
+	lda	perpWallDist
 	sta	MATHE_B
-	lda	sideDistX+1
-	sbc	deltaDistX+1
-//->	sta	perpWallDist+1
+	lda	perpWallDist+1
 	sta	MATHE_B+1
-	_ELSE
-	sec
-	lda	sideDistY
-	sbc	deltaDistY
-//->	sta	perpWallDist
-	sta	MATHE_B
-	lda	sideDistY+1
-	sbc	deltaDistY+1
-//->	sta	perpWallDist+1
-	sta	MATHE_B+1
-	_ENDIF
 
 	lda	#102
 	stz	MATHE_A
