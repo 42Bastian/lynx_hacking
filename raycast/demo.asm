@@ -2,7 +2,6 @@ START_X		equ 3
 START_Y		equ 5
 START_ANGLE	equ 92
 
-DOUBLEBUFFER	set 1	       ; 1 = double-buffering
 DEBUG	set 1			; if defined BLL loader is included
 ;>BRKuser	  set 1		; define if you want to use debugger
 
@@ -25,8 +24,6 @@ START_MEM	EQU screen0-SCREEN.LEN
 	include <macros/debug.mac>
 	include <macros/irq.mac>
 
-
-
 ;
 ; essential variables
 ;
@@ -46,7 +43,7 @@ START_MEM	EQU screen0-SCREEN.LEN
 ; zero-page
 ;
  BEGIN_ZP
-
+hbl_count	ds 1
 dirXhalf	ds 2
 dirYhalf	ds 2
 
@@ -83,6 +80,7 @@ lhit		ds 1
 tmp0		ds 2
 tmp1		ds 2
  END_ZP
+
 	echo "stepX     :%HstepX"
 	echo "posX      :%HposX"
 	echo "dirX      :%HdirX"
@@ -91,7 +89,6 @@ tmp1		ds 2
 	echo "sideDistX :%HsideDistX"
 	echo "deltaDistX:%HdeltaDistX"
 	echo "rayDirX0  :%HrayDirX0"
-
 
 ; main-memory variables
 ;
@@ -128,11 +125,11 @@ Start::
 	SETIRQ 0,HBL
 	SETIRQ 2,VBL
 
-	cli		; don`t forget this !!!!
+	cli			; don`t forget this !!!!
 
 	SCRBASE screen0,screen1
 
-	SETRGB pal	    ; set color
+	SETRGB pal		; set color
 
 	lda	#START_X
 	sta	posX+1
@@ -671,37 +668,25 @@ line_color:
 line_data:
 	dc.b 2,$10,0
 
-spriteSCB	dc.b SPRCTL0_16_COL|SPRCTL0_NORMAL
-		dc.b SPRCTL1_DEPTH_SIZE_RELOAD
-		dc.b 0
-		dc.w 0
-sprite_data:	dc.w 0
-sprite_x	dc.w 10
-sprite_y	dc.w 10
-	dc.w $100
-size_y	dc.w $100
-	dc.b $01,$23,$45,$67,$89,$AB,$CD,$EF
-
-count	ds 1
 HBL::
-	dec	count
+	dec	hbl_count
 	_IFMI
 	  clc
 	  lda	$fdb0
 	  adc	#$10
 	  _IFCS
-	    lda	#255
+	    lda	#127
 	  _ELSE
 	   sta	$fdb0
 	   lda	#1
 	_ENDIF
-	sta 	count
+	sta	hbl_count
 	_ENDIF
 	END_IRQ
 
 VBL::
 	lda	#2
-	sta	count
+	sta	hbl_count
 	stz	$fdb0
 	END_IRQ
 
@@ -741,9 +726,6 @@ cls_data
 
 pal
 	STANDARD_PAL
-
-phobyx_64x64_pal:
-	DP 000,CBC,989,656,424,9B8,8A7,796,685,DEE,ABB,788,555,40F,3F0,FFF
 
 	include "sintab.inc"
 	include "deltatab.inc"
