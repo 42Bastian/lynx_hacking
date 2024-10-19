@@ -46,6 +46,8 @@ START_MEM	EQU screen0-SCREEN.LEN
 hbl_count	ds 1
 dirXhalf	ds 2
 dirYhalf	ds 2
+hit		ds 1
+wallside	ds 1
 
 stepX		ds 2
 posX		ds 2
@@ -435,11 +437,106 @@ Start::
 	lda	(world_ptr)
 	beq	.wallloop
 
-	bbr0	side,.left
+	sta	hit
+	cmp	#1
+	beq	.edge
+;;->    if ( side == 0 ) {
+;;->      wallside = 3; // front
+;;->      if ( stepX < 0 ) {
+;;->        wallside += 1; // back
+;;->      }
+;;->    } else {
+;;->      wallside = 1;
+;;->      if ( stepY < 0 ) {
+;;->        wallside += 1;
+;;->      }
+;;->    }
+
+	bbs0	side,.front_back
+	ldx	#2
+	bbr7	stepX+1,.done_wallside
+	bra	.wallside_inc
+.front_back
+	ldx	#0
+	bbr7	stepY+1,.done_wallside
+.wallside_inc:
+	inx
+.done_wallside
+
+	stx	wallside
+	txa
 	clc
-	adc	#8
-.left
+	adc	hit
+	and	#$f
+.edge
 	sta	line_color
+//->	inc
+//->	asl
+//->	asl
+//->	asl
+//->	asl
+//->	sta	line_color+1
+
+;;->      perpWallDist *= 2;
+;;->      int wallX; //where exactly  the wall was hit
+;;->      if (side == 0) wallX = (posY - perpWallDist * rayDirY/fp);
+;;->      else           wallX = (posX + perpWallDist * rayDirX/fp);
+	asl	perpWallDist
+	rol	perpWallDist+1
+	bbr0	side,.t1
+	lda	perpWallDist
+	sta	MATHE_C
+	lda	perpWallDist+1
+	sta	MATHE_C+1
+	lda	rayDirX
+	sta	MATHE_E
+	lda	rayDirX+1
+	sta	MATHE_E+1
+	NOP8
+	clc
+	lda	posX
+	adc	MATHE_A+1
+	sta	wallX
+	lda	posX+1
+	adc	MATHE_A+2
+	bra	.t9
+.t1
+	lda	perpWallDist
+	sta	MATHE_C
+	lda	perpWallDist+1
+	sta	MATHE_C+1
+	lda	rayDirY
+	sta	MATHE_E
+	lda	rayDirY+1
+	sta	MATHE_E+1
+	NOP8
+	sec
+	lda	posY
+	sbc	MATHE_A+1
+	sta	wallX
+	lda	posY+1
+	sbc	MATHE_A+2
+.t9
+	lsr
+	ror	wallX
+	lsr
+	ror	wallX
+	lda	wallX
+	and	#63
+	tax
+	lda	hit
+	cmp	#9
+	_IFEQ
+	lda	phobyx_lo,x
+	sta	line_data
+	lda	phobyx_hi,x
+	sta	line_data+1
+	_ELSE
+	lda	mandel_lo,x
+	sta	line_data
+	lda	mandel_hi,x
+	sta	line_data+1
+	_ENDIF
 
 //->    int perpWallDist;
 //->    if (side == 0) perpWallDist = (sideDistX - deltaDistX);
@@ -450,14 +547,36 @@ Start::
 	lda	perpWallDist+1
 	sta	MATHE_B+1
 
-	lda	#102
+	lda	#204
 	stz	MATHE_A
-	sta	MATHE_A+1
-	stz	MATHE_A+2
+	stz	MATHE_A+1
+	sta	MATHE_A+2
 	stz	MATHE_A+3
 	WAITSUZY
+//->	brk	#1
 	lda	MATHE_D
+	sta	tmp0
+	lda	MATHE_D+1
+	tax
+
+	lsr
+	ror	tmp0
+	lsr
+	ror	tmp0
+	lsr
+	ror	tmp0
+	lsr
+	ror	tmp0
+	lsr
+	ror	tmp0
+	lsr
+	ror	tmp0
+
 	sta	line_ysize+1
+	lda	tmp0
+	sta	line_ysize
+
+	txa
 	eor	#$ff
 	sec
 	adc	#102
@@ -651,16 +770,16 @@ lineSCB:
 	dc.b SPRCTL0_16_COL|SPRCTL0_NORMAL
 	dc.b SPRCTL1_DEPTH_SIZE_RELOAD|SPRCTL1_LITERAL
 	dc.b 0
-	dc.w 0,line_data
+	dc.w 0
+line_data:
+	dc.w 0
 line_x	dc.w 0
 line_y	dc.w 51
 	dc.w $100
 line_ysize
-	dc.w $800
+	dc.w $100
 line_color:
-	dc.b $0
-line_data:
-	dc.b 2,$10,0
+	dc.b $01,$23,$45,$67,$89,$AB,$CD,$EF
 
 HBL::
 	dec	hbl_count
@@ -703,7 +822,7 @@ cls2SCB
 	dc.w 0,cls_data
 	dc.w 0,51
 	dc.w 160*$100,51*$100
-	dc.b $88
+	dc.b $ee
 
 cls_data
 	dc.b 2,$10,0
@@ -719,8 +838,13 @@ cls_data
 	include <includes/font2.hlp>
 
 pal
-	STANDARD_PAL
+;;;          2               6               A
+ DP 000,CBC,989,656,424,9B8,8A7,796,685,DEE,ABB,788,555,000,333,FFF
+//-> DP 000,FFF,300,700,900,f00,303,707,909,f0f,003,007,009,00F,333,FFF
+
 
 	include "sintab.inc"
 	include "deltatab.inc"
 	include "world.inc"
+	include "mandel.inc"
+	include "phobyx.inc"
