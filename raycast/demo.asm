@@ -2,7 +2,7 @@ START_X		equ 3
 START_Y		equ 5
 START_ANGLE	equ 68
 
-DEBUG	set 1			; if defined BLL loader is included
+//->DEBUG	set 1			; if defined BLL loader is included
 ;>BRKuser	  set 1		; define if you want to use debugger
 
 Baudrate	set 62500
@@ -44,8 +44,6 @@ START_MEM	EQU screen0-SCREEN.LEN
 ;
  BEGIN_ZP
 hbl_count	ds 1
-dirXhalf	ds 2
-dirYhalf	ds 2
 hit		ds 1
 wallside	ds 1
 
@@ -56,7 +54,7 @@ planeX::	ds 2
 rayDirX::	ds 2
 sideDistX::	ds 2
 deltaDistX	ds 2
-rayDirX0:	ds 3
+dirXhalf	ds 2
 
 
 stepY		ds 2
@@ -66,14 +64,20 @@ planeY		ds 2
 rayDirY		ds 2
 sideDistY	ds 2
 deltaDistY	ds 2
-rayDirY0	ds 3
+dirYhalf	ds 2
 
+
+rayDirX0:	ds 3
 rayDirXdelta	ds 3
+rayDirY0	ds 3
 rayDirYdelta	ds 3
 
-perpWallDist	ds 2
 
+perpWallDist	ds 2
 side		ds 1
+
+
+
 
 world_ptr	ds 2
 angle		ds 1
@@ -82,6 +86,7 @@ lhit		ds 1
 tmp0		ds 2
 tmp1		ds 2
  END_ZP
+	echo "hit       :%Hhit"
 
 	echo "stepX     :%HstepX"
 	echo "posX      :%HposX"
@@ -90,8 +95,14 @@ tmp1		ds 2
 	echo "rayDirX   :%HrayDirX"
 	echo "sideDistX :%HsideDistX"
 	echo "deltaDistX:%HdeltaDistX"
-	echo "rayDirX0  :%HrayDirX0"
+	echo "dirXhalf  :%H dirXhalf"
+	echo "--"
+	echo "rayDirX0  :%H rayDirX0"
+	echo "rayDirXd. :%H rayDirXdelta"
+	echo "rayDirY0  :%H rayDirY0"
 
+
+	echo "perpWallD.:%H perpWallDist"
 ; main-memory variables
 ;
 
@@ -142,8 +153,10 @@ Start::
 	lda	#START_ANGLE
 	sta	angle
 
-	MOVEI $13d,posX
-	MOVEI $7d2,posY
+//->	MOVEI $972,posX
+//->	MOVEI $41a,posY
+//->	lda	#228
+//->	sta	angle
 
 .newDirLoop:
 	jsr	getDirPlane
@@ -197,7 +210,6 @@ Start::
 	sty	rayDirYdelta+1
 	stx	rayDirYdelta+2
 
-//->	brk	#1
 	stz	lhit
 	ldx	#159
 .xloop
@@ -399,6 +411,10 @@ Start::
 ;;->      hit = map(mapX, mapY);
 ;;->    }
 
+//->	plx
+//->	phx
+//->	brk	#1
+
 .wallloop:
 	stz	side
 	CMPW	sideDistY,sideDistX
@@ -545,13 +561,13 @@ Start::
 
 	lda	#204
 	stz	MATHE_A
-	sta	MATHE_A+1
-	stz	MATHE_A+2
+	stz	MATHE_A+1
+	sta	MATHE_A+2
 	stz	MATHE_A+3
 	WAITSUZY
 
-	lda	MATHE_D
-	ldx	MATHE_D+1
+	lda	MATHE_D+1
+	ldx	MATHE_D+2
 	stx	tmp1+1
 
 	sta	tmp1
@@ -592,10 +608,12 @@ Start::
 	lda posX
 	jsr PrintHex
 	inc CurrX
+	inc CurrX
 	lda posY+1
 	jsr PrintHex
 	lda posY
 	jsr PrintHex
+	inc CurrX
 	inc CurrX
 	lda angle
 	jsr PrintDecA
@@ -745,9 +763,9 @@ mulX_410::
 	sta	MATHE_C
 	lda	1,x
 	sta	MATHE_C+1
-	lda	#<410
+	lda	#<409
 	sta	MATHE_E
-	lda	#>410
+	lda	#>409
 	sta	MATHE_E+1
 	NOP8
 	lda	MATHE_A+1
