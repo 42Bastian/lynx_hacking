@@ -440,24 +440,25 @@ Start::
 	sta	hit
 	cmp	#1
 	beq	.edge
-;;->    if ( side == 0 ) {
-;;->      wallside = 3; // front
-;;->      if ( stepX < 0 ) {
-;;->        wallside += 1; // back
-;;->      }
-;;->    } else {
-;;->      wallside = 1;
-;;->      if ( stepY < 0 ) {
-;;->        wallside += 1;
-;;->      }
-;;->    }
 
-	bbs0	side,.front_back
-	ldx	#2
-	bbr7	stepX+1,.done_wallside
-	bra	.wallside_inc
-.front_back
+;;    if ( side == 0 ) {
+;;      wallside = 1; // back
+;;      if ( stepX > 0 ) {
+;;        wallside = 2; // front
+;;      }
+;;    } else {
+;;      wallside = 3;  // right
+;;      if ( stepY < 0 ) {
+;;        wallside = 4; // left
+;;      }
+;;    }
+
+	bbs0	side,.left_right
 	ldx	#0
+	bbs7	stepX+1,.done_wallside
+	bra	.wallside_inc
+.left_right
+	ldx	#2
 	bbr7	stepY+1,.done_wallside
 .wallside_inc:
 	inx
@@ -497,8 +498,6 @@ Start::
 	lda	posX
 	adc	MATHE_A+1
 	sta	wallX
-	lda	posX+1
-	adc	MATHE_A+2
 	bra	.t9
 .t1
 	lda	perpWallDist
@@ -514,15 +513,13 @@ Start::
 	lda	posY
 	sbc	MATHE_A+1
 	sta	wallX
-	lda	posY+1
-	sbc	MATHE_A+2
 .t9
 	lsr
-	ror	wallX
 	lsr
-	ror	wallX
-	lda	wallX
-	and	#63
+	bbs0	wallside,.no_mirror
+	eor	#63
+.no_mirror
+
 	tax
 	lda	hit
 	cmp	#9
@@ -553,45 +550,32 @@ Start::
 	sta	MATHE_A+2
 	stz	MATHE_A+3
 	WAITSUZY
-//->	brk	#1
-	lda	MATHE_D
-	sta	tmp0
+
 	lda	MATHE_D+1
-	tax
+	sta	tmp1
+	lsr	tmp1
 
-	lsr
-	ror	tmp0
-	lsr
-	ror	tmp0
-	lsr
-	ror	tmp0
-	lsr
-	ror	tmp0
-	lsr
-	ror	tmp0
-	lsr
-	ror	tmp0
+	stz	tmp0		; div 64 => mul 4
+	asl
+	rol	tmp0
+	asl
+	rol	tmp0
 
-	sta	line_ysize+1
-	lda	tmp0
 	sta	line_ysize
+	lda	tmp0
+	sta	line_ysize+1
 
-	txa
-	eor	#$ff
 	sec
-	adc	#102
-	_IFCC
-	  lda	#0
-	_ENDIF
-	lsr
+	lda	#51
+	sbc	tmp1
 	sta	line_y
-;;->line_height = (_height*fp / perpWallDist);
+	  lda	#0
+	sbc	#0
+	sta	line_y+1	; power of Lynx: negative Y!
+
 	LDAY	lineSCB
 	jsr	DrawSprite
-//->	cmp	#3
-//->	bne	.xx
-//->	brk 	#1
-//->.xx
+
 	plx
 	dex
 	cpx	#$ff
