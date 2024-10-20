@@ -1,6 +1,6 @@
 START_X		equ 3
 START_Y		equ 5
-START_ANGLE	equ 92
+START_ANGLE	equ 68
 
 DEBUG	set 1			; if defined BLL loader is included
 ;>BRKuser	  set 1		; define if you want to use debugger
@@ -121,7 +121,7 @@ Start::
 	INITIRQ irq_vectors
 	jsr InitComLynx
 
-	INITFONT SMALLFNT,2,15
+	INITFONT LITTLEFNT,0,15
 	SET_MINMAX 0,0,160,102
 
 	SETIRQ 0,HBL
@@ -133,12 +133,17 @@ Start::
 
 	SETRGB pal		; set color
 
+	lda	#$40
+	sta	posX
 	lda	#START_X
 	sta	posX+1
 	lda	#START_Y
 	sta	posY+1
 	lda	#START_ANGLE
 	sta	angle
+
+	MOVEI $13d,posX
+	MOVEI $7d2,posY
 
 .newDirLoop:
 	jsr	getDirPlane
@@ -471,12 +476,6 @@ Start::
 	and	#$f
 .edge
 	sta	line_color
-//->	inc
-//->	asl
-//->	asl
-//->	asl
-//->	asl
-//->	sta	line_color+1
 
 ;;->      perpWallDist *= 2;
 ;;->      int wallX; //where exactly  the wall was hit
@@ -524,15 +523,15 @@ Start::
 	lda	hit
 	cmp	#9
 	_IFEQ
-	lda	phobyx_lo,x
-	sta	line_data
-	lda	phobyx_hi,x
-	sta	line_data+1
+	  lda	phobyx_lo,x
+	  sta	line_data
+	  lda	phobyx_hi,x
+	  sta	line_data+1
 	_ELSE
-	lda	mandel_lo,x
-	sta	line_data
-	lda	mandel_hi,x
-	sta	line_data+1
+	  lda	mandel_lo,x
+	  sta	line_data
+	  lda	mandel_hi,x
+	  sta	line_data+1
 	_ENDIF
 
 //->    int perpWallDist;
@@ -546,16 +545,20 @@ Start::
 
 	lda	#204
 	stz	MATHE_A
-	stz	MATHE_A+1
-	sta	MATHE_A+2
+	sta	MATHE_A+1
+	stz	MATHE_A+2
 	stz	MATHE_A+3
 	WAITSUZY
 
-	lda	MATHE_D+1
-	sta	tmp1
-	lsr	tmp1
+	lda	MATHE_D
+	ldx	MATHE_D+1
+	stx	tmp1+1
 
-	stz	tmp0		; div 64 => mul 4
+	sta	tmp1
+	lsr	tmp1+1
+	ror	tmp1
+
+	stx	tmp0		; div 64 => mul 4
 	asl
 	rol	tmp0
 	asl
@@ -569,8 +572,8 @@ Start::
 	lda	#51
 	sbc	tmp1
 	sta	line_y
-	  lda	#0
-	sbc	#0
+	lda	#0
+	sbc	tmp1+1
 	sta	line_y+1	; power of Lynx: negative Y!
 
 	LDAY	lineSCB
@@ -583,6 +586,19 @@ Start::
 	jmp	.xloop
 .done
 
+	SET_XY 0,0
+	lda posX+1
+	jsr PrintHex
+	lda posX
+	jsr PrintHex
+	inc CurrX
+	lda posY+1
+	jsr PrintHex
+	lda posY
+	jsr PrintHex
+	inc CurrX
+	lda angle
+	jsr PrintDecA
 .0
 	READKEY		; see MIKEY.MAC
 	lda 	Button
