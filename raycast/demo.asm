@@ -544,11 +544,20 @@ Start::
 	  lda	phobyx_hi,x
 	  sta	line_data+1
 	_ELSE
+	  cmp #10
+	  _IFEQ
 	  lda	mandel_lo,x
 	  sta	line_data
 	  lda	mandel_hi,x
 	  sta	line_data+1
+	  _ELSE
+	  lda	wall1_lo,x
+	  sta	line_data
+	  lda	wall1_hi,x
+	  sta	line_data+1
 	_ENDIF
+	_ENDIF
+
 
 //->    int perpWallDist;
 //->    if (side == 0) perpWallDist = (sideDistX - deltaDistX);
@@ -781,9 +790,6 @@ mulAY::
 	lda	MATHE_A+1
 	rts
 
-posTxt:
-	dc.b "Position :",0
-
 lineSCB:
 	dc.b SPRCTL0_16_COL|SPRCTL0_NORMAL
 	dc.b SPRCTL1_DEPTH_SIZE_RELOAD|SPRCTL1_LITERAL
@@ -866,3 +872,4 @@ pal
 	include "world.inc"
 	include "mandel.inc"
 	include "phobyx.inc"
+	include "wall1.inc"
