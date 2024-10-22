@@ -6,8 +6,11 @@ $(DEMO).o: $(DEMO).asm world.inc sintab.inc deltatab.inc mandel.inc phobyx.inc\
 	wall1.inc
 
 mandel.inc: spr/mandel000000.spr
+	touch $@
 wall1.inc: spr/wall1000000.spr
+	touch $@
 phobyx.inc: spr/phobyx000000.spr
+	touch $@
 
 %.o: %.asm
 	@lyxass  $(ASFLAGS) $<

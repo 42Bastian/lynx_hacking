@@ -72,12 +72,8 @@ rayDirXdelta	ds 3
 rayDirY0	ds 3
 rayDirYdelta	ds 3
 
-
 perpWallDist	ds 2
 side		ds 1
-
-
-
 
 world_ptr	ds 2
 angle		ds 1
@@ -153,10 +149,10 @@ Start::
 	lda	#START_ANGLE
 	sta	angle
 
-//->	MOVEI $972,posX
-//->	MOVEI $41a,posY
-//->	lda	#228
-//->	sta	angle
+	MOVEI $254,posX
+	MOVEI $e58,posY
+	lda	#156
+	sta	angle
 
 .newDirLoop:
 	jsr	getDirPlane
@@ -168,7 +164,8 @@ Start::
 	SWITCHBUF
 //->	dec 	$fda0
 
-	jsr	cls
+	LDAY skyFloorSCB
+	jsr DrawSprite
 
 	clc
 	lda	dirX
@@ -378,23 +375,7 @@ Start::
 	sty	stepY
 .rayDirYZero:
 
-	lda	posY+1
-	ldy	#16
-	jsr	mulAY
-	clc
-	adc	#<world
-	sta	world_ptr
-	lda	MATHE_A+2
-	adc	#>world
-	sta	world_ptr+1
-
-	clc
-	lda	posX+1
-	adc	world_ptr
-	sta	world_ptr
-	_IFCS
-	  inc	world_ptr+1
-	_ENDIF
+	jsr	getWorld_XY
 
 ;;->    while (hit == 0 ) {
 ;;->      //jump to next map square, either in x-direction, or in y-direction
@@ -626,6 +607,7 @@ Start::
 	inc CurrX
 	lda angle
 	jsr PrintDecA
+
 .0
 	READKEY		; see MIKEY.MAC
 	lda 	Button
@@ -650,39 +632,116 @@ Start::
 	_ELSE
 	  bit #JOY_UP
 	  _IFNE
-	    clc
-	    lda posX
-	    adc dirXhalf
-	    sta posX
-	    lda posX+1
-	    adc dirXhalf+1
-	    sta posX+1
-	    sec
-	    lda posY
-	    sbc dirYhalf
-	    sta posY
-	    lda posY+1
-	    sbc dirYhalf+1
-	    sta posY+1
+	    jsr moveForward
 	  _ELSE
-	    sec
-	    lda posX
-	    sbc dirXhalf
-	    sta posX
-	    lda posX+1
-	    sbc dirXhalf+1
-	    sta posX+1
-	    clc
-	    lda posY
-	    adc dirYhalf
-	    sta posY
-	    lda posY+1
-	    adc dirYhalf+1
-	    sta posY+1
+	    jsr moveBackward
 	  _ENDIF
 	_ENDIF
 
 	jmp .newDirLoop
+
+;;; ----------------------------------------
+;;; Move dirXhalf step backward
+moveBackward::
+	sec
+	lda	posX
+	sta	tmp1
+	sbc	dirX
+	sta	posX
+	lda	posX+1
+	sta	tmp1+1
+	sbc	dirX+1
+	sta	posX+1
+	jsr	getWorld_XY
+	_IFNE
+	  lda	tmp1
+	  sta	posX
+	  lda	tmp1+1
+	  sta	posX+1
+	_ELSE
+	  SUBWABC dirXhalf,tmp1,posX
+	_ENDIF
+	clc
+	lda	posY
+	sta	tmp1
+	adc	dirY
+	lda	posY+1
+	sta	tmp1+1
+	adc	dirY+1
+	sta	posY+1
+	jsr	getWorld_XY
+	_IFNE
+	  lda	tmp1
+	  sta	posY
+	  lda	tmp1+1
+	  sta	posY+1
+	_ELSE
+	   ADDWABC dirYhalf,tmp1,posY
+	_ENDIF
+	rts
+;;; ----------------------------------------
+;;; Move dirXhalf step forward
+moveForward::
+	clc
+	lda 	posX
+	sta	tmp1
+	adc	dirX
+	sta	posX
+	lda	posX+1
+	sta	tmp1+1
+	adc	dirX+1
+	sta	posX+1
+	jsr	getWorld_XY
+	_IFNE
+	   lda	tmp1
+	   sta	posX
+	   lda	tmp1+1
+	   sta	posX+1
+	_ELSE
+	  ADDWABC tmp1,dirXhalf,posX
+	_ENDIF
+	sec
+	lda	posY
+	sta	tmp1
+	sbc	dirY
+	lda	posY+1
+	sta	tmp1+1
+	sbc	dirY+1
+	sta	posY+1
+	jsr	getWorld_XY
+	  _IFNE
+	  lda	tmp1
+	    sta posY
+	  lda	tmp1+1
+	    sta posY+1
+	  _ELSE
+	   SUBWABC dirYhalf,tmp1,posY
+	_ENDIF
+	rts
+;;; ----------------------------------------
+;;; Calculate world-pointer and return element
+;;;
+
+getWorld_XY::
+	    lda posY+1
+	ldy	#16
+	jsr	mulAY
+	clc
+	adc	#<world
+	sta	world_ptr
+	lda	MATHE_A+2
+	adc	#>world
+	sta	world_ptr+1
+
+	clc
+	lda	posX+1
+	adc	world_ptr
+	sta	world_ptr
+	_IFCS
+	  inc	world_ptr+1
+	_ENDIF
+	lda	(world_ptr)
+	rts
 
 ;;; ----------------------------------------
 ;;  dirX = -co(angle);
@@ -691,25 +750,25 @@ Start::
 ;;  planeY = 6*co(angle)/8;
 
 getDirPlane::
-	ldy	#0
 	ldx	angle
+
 	lda	sintab_lo+64,x
 	sta	tmp0
 	clc
 	eor	#$ff
 	adc	#1
 	sta	dirX
+	tay
 	lda	sintab_hi+64,x
 	sta	tmp0+1
 	eor	#$ff
 	adc	#0
 	sta	dirX+1
 
-	lda	dirX+1
 	cmp	#$80
 	ror
 	sta	dirXhalf+1
-	lda	dirX
+	tya
 	ror
 	sta	dirXhalf
 
@@ -718,13 +777,11 @@ getDirPlane::
 	ldy	sintab_hi,x
 	sty	dirY+1
 	jsr	mul6div8
-
 	sta	planeX+1
 	sty	planeX
 
 	lda	tmp0
 	ldy	tmp0+1
-
 	jsr	mul6div8
 	sta	planeY+1
 	sty	planeY
@@ -736,9 +793,10 @@ getDirPlane::
 	lda	dirY
 	ror
 	sta	dirYhalf
-
 	rts
-
+;;; ----------------------------------------
+;;; Multiply A:Y by 6 and divide by 8
+;;;
 mul6div8::
 	sta	tmp1
 	sty	tmp1+1
@@ -766,7 +824,9 @@ mul6div8::
 
 	ldy	tmp1
 	rts
-
+;;; ----------------------------------------
+;;; Multiply x:x+1 by 410 (256*256/160)
+;;;
 mulX_410::
 	lda	0,x
 	sta	MATHE_C
@@ -782,6 +842,9 @@ mulX_410::
 	ldx	MATHE_A+3
 	rts
 
+;;; ----------------------------------------
+;;; Multiply A * Y
+;;;
 mulAY::
 	stz	MATHE_E
 	sta	MATHE_C		; A = C * E
@@ -790,6 +853,8 @@ mulAY::
 	lda	MATHE_A+1
 	rts
 
+;;; ----------------------------------------
+;;;
 lineSCB:
 	dc.b SPRCTL0_16_COL|SPRCTL0_NORMAL
 	dc.b SPRCTL1_DEPTH_SIZE_RELOAD|SPRCTL1_LITERAL
@@ -805,6 +870,8 @@ line_ysize
 line_color:
 	dc.b $01,$23,$45,$67,$89,$AB,$CD,$EF
 
+;;; ----------------------------------------
+;;; horizontal interrupt for the sky
 HBL::
 	dec	hbl_count
 	_IFMI
@@ -821,36 +888,33 @@ HBL::
 	_ENDIF
 	END_IRQ
 
+;;; ----------------------------------------
 VBL::
 	lda	#2
 	sta	hbl_count
 	stz	$fdb0
 	END_IRQ
 
-;
-; clear screen
-;
-cls
-	LDAY clsSCB
-	jmp DrawSprite
+;;; ----------------------------------------
+;;; SCB for sky and floor
 
-clsSCB
-	dc.b $c0,$90,$00
-	dc.w cls2SCB,cls_data
+skyFloorSCB
+	dc.b SPRCTL0_16_COL,SPRCTL1_LITERAL|SPRCTL1_DEPTH_SIZE_RELOAD,$00
+	dc.w floorSCB,cls_data
 	dc.w 0,0
 	dc.w 160*$100,51*$100
 	dc.b $00
 
-cls2SCB
-	dc.b $c0,$90,$00
+floorSCB
+	dc.b SPRCTL0_16_COL,SPRCTL1_LITERAL|SPRCTL1_DEPTH_NO_RELOAD,$00
 	dc.w 0,cls_data
 	dc.w 0,51
-	dc.w 160*$100,51*$100
 	dc.b $ee
-
 cls_data
 	dc.b 2,$10,0
 
+;;; ========================================
+;;; BLL includes
 
 	include <includes/irq.inc>
 	include <includes/debug.inc>
@@ -866,6 +930,8 @@ pal
  DP 000,CBC,989,656,424,9B8,8A7,796,685,DEE,ABB,788,555,000,333,FFF
 //-> DP 000,FFF,300,700,900,f00,303,707,909,f0f,003,007,009,00F,333,FFF
 
+;;; ========================================
+;;; local includes
 
 	include "sintab.inc"
 	include "deltatab.inc"
