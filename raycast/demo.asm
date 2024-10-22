@@ -457,15 +457,16 @@ Start::
 
 	bbs0	side,.left_right
 	ldx	#0
-	bbs7	stepX+1,.done_wallside
-	bra	.wallside_inc
+	lda	stepX+1
+	bpl	.wallside_inc
+	bra	.done_wallside
 .left_right
 	ldx	#2
-	bbr7	stepY+1,.done_wallside
+	lda	stepY+1
+	bpl	.done_wallside
 .wallside_inc:
 	inx
 .done_wallside
-
 	stx	wallside
 	txa
 	clc
@@ -478,13 +479,16 @@ Start::
 ;;->      int wallX; //where exactly  the wall was hit
 ;;->      if (side == 0) wallX = (posY - perpWallDist * rayDirY/fp);
 ;;->      else           wallX = (posX + perpWallDist * rayDirX/fp);
-	asl	perpWallDist
-	rol	perpWallDist+1
-	bbr0	side,.t1
 	lda	perpWallDist
+	sta	MATHE_B
+	asl
 	sta	MATHE_C
 	lda	perpWallDist+1
+	sta	MATHE_B+1
+	rol
 	sta	MATHE_C+1
+	bbr0	side,.t1
+
 	lda	rayDirX
 	sta	MATHE_E
 	lda	rayDirX+1
@@ -493,13 +497,9 @@ Start::
 	clc
 	lda	posX
 	adc	MATHE_A+1
-	sta	wallX
 	bra	.t9
 .t1
-	lda	perpWallDist
-	sta	MATHE_C
-	lda	perpWallDist+1
-	sta	MATHE_C+1
+
 	lda	rayDirY
 	sta	MATHE_E
 	lda	rayDirY+1
@@ -508,13 +508,13 @@ Start::
 	sec
 	lda	posY
 	sbc	MATHE_A+1
-	sta	wallX
 .t9
 	lsr
 	lsr
 	bbs0	wallside,.no_mirror
 	eor	#63
 .no_mirror
+	sta	wallX
 
 	tax
 	lda	hit
@@ -544,12 +544,7 @@ Start::
 //->    if (side == 0) perpWallDist = (sideDistX - deltaDistX);
 //->    else           perpWallDist = (sideDistY - deltaDistY);
 
-	lda	perpWallDist
-	sta	MATHE_B
-	lda	perpWallDist+1
-	sta	MATHE_B+1
-
-	lda	#204
+	lda	#102
 	stz	MATHE_A
 	stz	MATHE_A+1
 	sta	MATHE_A+2
