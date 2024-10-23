@@ -74,11 +74,11 @@ rayDirYdelta	ds 3
 
 perpWallDist	ds 2
 side		ds 1
-
+base_color	ds 1
 world_ptr	ds 2
 angle		ds 1
 wallX		ds 1
-lhit		ds 1
+floor		ds 1
 tmp0		ds 2
 tmp1		ds 2
  END_ZP
@@ -149,9 +149,9 @@ Start::
 	lda	#START_ANGLE
 	sta	angle
 
-	MOVEI $254,posX
-	MOVEI $e58,posY
-	lda	#156
+	MOVEI $bc6,posX
+	MOVEI $ab8,posY
+	lda	#220
 	sta	angle
 
 .newDirLoop:
@@ -207,11 +207,13 @@ Start::
 	sty	rayDirYdelta+1
 	stx	rayDirYdelta+2
 
-	stz	lhit
 	ldx	#159
 .xloop
 	stx	line_x
 	phx
+
+	lda	#$01
+	sta	line_color
 
 ;;; //calculate ray position and direction
 	sec
@@ -442,6 +444,9 @@ Start::
 	sta	hit
 	cmp	#1
 	beq	.edge
+	tax
+	and	#3
+	sta	base_color
 
 ;;    if ( side == 0 ) {
 ;;      wallside = 1; // back
@@ -470,11 +475,10 @@ Start::
 	stx	wallside
 	txa
 	clc
-	adc	hit
-	and	#$f
-.edge
+	adc	base_color
+	beq	.edge
 	sta	line_color
-
+.edge
 ;;->      perpWallDist *= 2;
 ;;->      int wallX; //where exactly  the wall was hit
 ;;->      if (side == 0) wallX = (posY - perpWallDist * rayDirY/fp);
@@ -516,29 +520,24 @@ Start::
 .no_mirror
 	sta	wallX
 
-	tax
-	lda	hit
-	cmp	#9
-	_IFEQ
-	  lda	phobyx_lo,x
-	  sta	line_data
-	  lda	phobyx_hi,x
-	  sta	line_data+1
-	_ELSE
-	  cmp #10
-	  _IFEQ
-	  lda	mandel_lo,x
-	  sta	line_data
-	  lda	mandel_hi,x
-	  sta	line_data+1
-	  _ELSE
-	  lda	wall1_lo,x
-	  sta	line_data
-	  lda	wall1_hi,x
-	  sta	line_data+1
-	_ENDIF
-	_ENDIF
+	tay
 
+	lda	hit
+	lsr
+	lsr
+	tax
+	lda	textures_lolo,x
+	sta	tmp0
+	lda	textures_lohi,x
+	sta	tmp0+1
+	lda	(tmp0),y
+	sta	line_data
+	lda	textures_hilo,x
+	sta	tmp0
+	lda	textures_hihi,x
+	sta	tmp0+1
+	lda	(tmp0),y
+	sta	line_data+1
 
 //->    int perpWallDist;
 //->    if (side == 0) perpWallDist = (sideDistX - deltaDistX);
@@ -617,11 +616,11 @@ Start::
 	  clc
 	  bit #JOY_RIGHT
 	  _IFNE
-	  lda angle
-	   adc #4
-          _ELSE
-	  lda angle
-	   sbc #3
+	    lda angle
+	    adc #4
+	  _ELSE
+	    lda angle
+	    sbc #3
 	  _ENDIF
 	  sta angle
 	_ELSE
@@ -704,12 +703,12 @@ moveForward::
 	sbc	dirY+1
 	sta	posY+1
 	jsr	getWorld_XY
-	  _IFNE
+	_IFNE
 	  lda	tmp1
-	    sta posY
+	  sta	posY
 	  lda	tmp1+1
-	    sta posY+1
-	  _ELSE
+	  sta	posY+1
+	_ELSE
 	   SUBWABC dirYhalf,tmp1,posY
 	_ENDIF
 	rts
@@ -718,7 +717,7 @@ moveForward::
 ;;;
 
 getWorld_XY::
-	    lda posY+1
+	lda	posY+1
 	ldy	#16
 	jsr	mulAY
 	clc
@@ -793,31 +792,14 @@ getDirPlane::
 ;;; Multiply A:Y by 6 and divide by 8
 ;;;
 mul6div8::
-	sta	tmp1
-	sty	tmp1+1
-	asl	tmp1
-	rol	tmp1+1
-	clc
-	adc	tmp1
-	sta	tmp1
-	tya
-	adc	tmp1+1
-	asl	tmp1
-	rol
-
-	cmp	#$80
-	ror
-	ror	tmp1
-
-	cmp	#$80
-	ror
-	ror	tmp1
-
-	cmp	#$80
-	ror
-	ror	tmp1
-
-	ldy	tmp1
+	sta	MATHE_C
+	sty	MATHE_C+1
+	lda	#200
+	sta	MATHE_E
+	stz	MATHE_E+1
+	NOP8
+	ldy	MATHE_A+1
+	lda	MATHE_A+2
 	rts
 ;;; ----------------------------------------
 ;;; Multiply x:x+1 by 410 (256*256/160)
@@ -867,27 +849,39 @@ line_color:
 
 ;;; ----------------------------------------
 ;;; horizontal interrupt for the sky
+
 HBL::
 	dec	hbl_count
 	_IFMI
-	  clc
-	  lda	$fdb0
-	  adc	#$10
-	  _IFCS
-	    lda	#127
+	  _IFEQ floor
+	    clc
+	    lda	$fdb0
+	    adc	#$10
+	    _IFCS
+	      lda #20
+	      dec floor
+	    _ELSE
+	      sta $fdb0
+	      lda #1
+	    _ENDIF
+	    sta	hbl_count
 	  _ELSE
-	   sta	$fdb0
-	   lda	#1
-	_ENDIF
-	sta	hbl_count
+	    lda #$23
+	    sta $fda0
+	    sta $fdb0
+	    lda #127
+	    sta hbl_count
+	  _ENDIF
 	_ENDIF
 	END_IRQ
 
 ;;; ----------------------------------------
 VBL::
-	lda	#2
+	lda	#3
 	sta	hbl_count
 	stz	$fdb0
+	stz	$fda0
+	stz	floor
 	END_IRQ
 
 ;;; ----------------------------------------
@@ -895,16 +889,11 @@ VBL::
 
 skyFloorSCB
 	dc.b SPRCTL0_16_COL,SPRCTL1_LITERAL|SPRCTL1_DEPTH_SIZE_RELOAD,$00
-	dc.w floorSCB,cls_data
+	dc.w 0,cls_data
 	dc.w 0,0
-	dc.w 160*$100,51*$100
+	dc.w 160*$100,102*$100
 	dc.b $00
 
-floorSCB
-	dc.b SPRCTL0_16_COL,SPRCTL1_LITERAL|SPRCTL1_DEPTH_NO_RELOAD,$00
-	dc.w 0,cls_data
-	dc.w 0,51
-	dc.b $ee
 cls_data
 	dc.b 2,$10,0
 
@@ -922,8 +911,7 @@ cls_data
 
 pal
 ;;;          2               6               A
- DP 000,CBC,989,656,424,9B8,8A7,796,685,DEE,ABB,788,555,000,333,FFF
-//-> DP 000,FFF,300,700,900,f00,303,707,909,f0f,003,007,009,00F,333,FFF
+ DP 000,CBC,989,656,424,9B8,8A7,796,685,DEE,ABB,788,555,000,222,FFF
 
 ;;; ========================================
 ;;; local includes
@@ -934,3 +922,13 @@ pal
 	include "mandel.inc"
 	include "phobyx.inc"
 	include "wall1.inc"
+;;; ----------------------------------------
+textures_lolo:
+	dc.b	 <wall1_lo,<phobyx_lo, <mandel_lo
+textures_lohi:
+	dc.b	 >wall1_lo,>phobyx_lo, >mandel_lo
+
+textures_hilo:
+	dc.b	<wall1_hi,<phobyx_hi, <mandel_hi
+textures_hihi:
+	dc.b	>wall1_hi,>phobyx_hi, >mandel_hi
