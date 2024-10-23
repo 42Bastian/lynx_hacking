@@ -2,8 +2,7 @@ START_X		equ 3
 START_Y		equ 5
 START_ANGLE	equ 68
 
-//->DEBUG	set 1			; if defined BLL loader is included
-;>BRKuser	  set 1		; define if you want to use debugger
+HALF_REZ	equ 0
 
 Baudrate	set 62500
 
@@ -56,7 +55,6 @@ sideDistX::	ds 2
 deltaDistX	ds 2
 dirXhalf	ds 2
 
-
 stepY		ds 2
 posY		ds 2
 dirY		ds 2
@@ -65,7 +63,6 @@ rayDirY		ds 2
 sideDistY	ds 2
 deltaDistY	ds 2
 dirYhalf	ds 2
-
 
 rayDirX0:	ds 3
 rayDirXdelta	ds 3
@@ -79,8 +76,12 @@ world_ptr	ds 2
 angle		ds 1
 wallX		ds 1
 floor		ds 1
+lhit		ds 1
+textureLo	ds 2
+textureHi	ds 2
 tmp0		ds 2
 tmp1		ds 2
+vbl_count	ds 2
  END_ZP
 	echo "hit       :%Hhit"
 
@@ -126,7 +127,7 @@ Start::
 	sta	SPRSYS
 
 	INITIRQ irq_vectors
-	jsr InitComLynx
+//->	jsr InitComLynx
 
 	INITFONT LITTLEFNT,0,15
 	SET_MINMAX 0,0,160,102
@@ -162,6 +163,7 @@ Start::
 .loop
 //->	stz	$fda0
 	SWITCHBUF
+	stz	vbl_count
 //->	dec 	$fda0
 
 	LDAY skyFloorSCB
@@ -202,55 +204,31 @@ Start::
 	stx	rayDirXdelta+2
 
 	ldx	#planeY
-	jsr	mulX_410
+	jsr	mulX_410_b
 	sta	rayDirYdelta
 	sty	rayDirYdelta+1
 	stx	rayDirYdelta+2
 
-	ldx	#159
+ IF HALF_REZ = 1
+	lda	#79
+ ELSE
+	lda	#160
+ ENDIF
+	sta	lhit
 .xloop
-	stx	line_x
-	phx
+	pha
+ IF HALF_REZ = 1
+	asl
+ ENDIF
+	sta	line_x
 
 	lda	#$01
 	sta	line_color
-
-;;; //calculate ray position and direction
-	sec
-	lda	rayDirX0
-	sbc	rayDirXdelta
-	sta	rayDirX0
-	lda	rayDirX0+1
-	sta	rayDirX
-	sbc	rayDirXdelta+1
-	sta	rayDirX0+1
-	lda	rayDirX0+2
-	sta	rayDirX+1
-	sbc	rayDirXdelta+2
-	sta	rayDirX0+2
-
-	sec
-	lda	rayDirY0
-	sbc	rayDirYdelta
-	sta	rayDirY0
-	lda	rayDirY0+1
-	sta	rayDirY
-	sbc	rayDirYdelta+1
-	sta	rayDirY0+1
-	lda	rayDirY0+2
-	sta	rayDirY+1
-	sbc	rayDirYdelta+2
-	sta	rayDirY0+2
-
-//->    int stepX = 0;
-//->    int deltaDistX = fp*fp;
-//->    int sideDistX =  sideDistX0;
 
 	stz	stepX
 	stz	stepX+1
 	stz	stepY
 	stz	stepY+1
-	lda	#$ff
 	sta	deltaDistX
 	sta	deltaDistX+1
 	sta	deltaDistY
@@ -262,25 +240,40 @@ Start::
 	sta	sideDistY
 	stz	sideDistY+1
 
-//->    if ( rayDirX/2 != 0 ) {
-//->      deltaDistX = delta(abs(rayDirX/2));
-//->      //deltaDistX = abs(fp*fp / rayDirX);
-//->
-//->      if (rayDirX < 0) {
-//->        stepX = -1;
-//->        sideDistX = (sideDistX/n) * deltaDistX/(fp/n);
-//->      } else {
-//->        stepX = 1;
-//->        sideDistX = (fp - sideDistX)/n * deltaDistX/(fp/n);
-//->      }
-//->    }
+;;; //calculate ray position and direction
+	sec
+	lda	rayDirX0
+	sbc	rayDirXdelta
+	sta	rayDirX0
+	lda	rayDirX0+1
+	sta	rayDirX
+	tax			; save for later
+	sta	tmp0
+	sbc	rayDirXdelta+1
+	sta	rayDirX0+1
+	lda	rayDirX0+2
+	sta	rayDirX+1
+	tsb	tmp0		; zero check
+	sbc	rayDirXdelta+2
+	sta	rayDirX0+2
 
-	lda	rayDirX
-	tax
-	ora	rayDirX+1
-	beq	.rayDirXZero
+;;    if ( rayDirX != 0 ) {
+;;      deltaDistX = delta(abs(rayDirX));
+;;
+;;      if (rayDirX < 0) {
+;;        stepX = -1;
+;;        sideDistX = sideDistX * deltaDistX/fp;
+;;      } else {
+;;        stepX = 1;
+;;        sideDistX = (fp - sideDistX) * deltaDistX/fp;
+;;      }
+;;    }
 
 	ldy	#1
+
+	lda	tmp0
+	beq	.rayDirXZero
+
 	bbr7	rayDirX+1,.rayDirPlus
 	txa
 	eor	#$ff
@@ -289,56 +282,65 @@ Start::
 	ldy	#$ff
 	sty	stepX+1
 .rayDirPlus
+	sty	stepX
+
+	lda	sideDistX
+
+	iny
+	beq	.rayDirMinus
+
+	eor	#$ff
+	inc
+.rayDirMinus:
+	sta	MATHE_C
 	lda	deltatab_lo,x
 	sta	deltaDistX
-	sta	MATHE_C
+	sta	MATHE_E
 	lda	deltatab_hi,x
 	sta	deltaDistX+1
-	sta	MATHE_C+1
-	lda	sideDistX+1
-	ldx	sideDistX
-	cpy	#0
-	bmi	.rayDirMinus
-	clc
-	txa
-	eor	#$ff
-	adc	#1
-	tax
-	lda	sideDistX+1
-	eor	#$ff
-	adc	#1
-.rayDirMinus:
-	stx	MATHE_E
 	sta	MATHE_E+1
 	NOP8
 	lda	MATHE_A+1
 	sta	sideDistX
 	lda	MATHE_A+2
 	sta	sideDistX+1
-	sty	stepX
 .rayDirXZero:
 
-;;->    if ( rayDirY/2!= 0 ) {
-;;->      deltaDistY = delta(abs(rayDirY/2));
-;;->      //deltaDistY = abs(fp*fp / rayDirY);
-;;->
-;;->      if (rayDirY > 0) {
-;;->        stepY = -1;
-;;->        sideDistY = (sideDistY/n) * deltaDistY/(fp/n);
-;;->      } else {
-;;->        stepY = 1;
-;;->        sideDistY = (fp - sideDistY)/n * deltaDistY/(fp/n);
-;;->      }
-;;->    }
-
-	lda	rayDirY
+	sec
+	lda	rayDirY0
+	sbc	rayDirYdelta
+	sta	rayDirY0
+	lda	rayDirY0+1
+	sta	rayDirY
 	tax
-	ora	rayDirY+1
+	sta	tmp0
+	sbc	rayDirYdelta+1
+	sta	rayDirY0+1
+	lda	rayDirY0+2
+	sta	rayDirY+1
+	tsb	tmp0
+	sbc	rayDirYdelta+2
+	sta	rayDirY0+2
+
+;;    if ( rayDirY != 0 ) {
+;;      deltaDistY = delta(abs(rayDirY/2));
+;;
+;;      if (rayDirY > 0) {
+;;        stepY = -1;
+;;        sideDistY = sideDistY * deltaDistY/fp;
+;;      } else {
+;;        stepY = 1;
+;;        sideDistY = (fp - sideDistY) * deltaDistY/fp;
+;;      }
+;;    }
+
+	lda	tmp0
 	beq	.rayDirYZero
 
 	ldy	#-16
 	dec	stepY+1
 	bbr7	rayDirY+1,.rayDirYPlus
+
 	txa
 	eor	#$ff
 	inc
@@ -346,60 +348,51 @@ Start::
 	ldy	#16
 	stz	stepY+1
 .rayDirYPlus
+	sty	stepY
+
+	lda	sideDistY
+
+	iny
+	bmi	.rayDirYPlus2	; -16 => -15, still < 0
+
+	eor	#$ff
+	inc
+.rayDirYPlus2:
+	sta	MATHE_C
+
 	lda	deltatab_lo,x
 	sta	deltaDistY
-	sta	MATHE_C
+	sta	MATHE_E
 	lda	deltatab_hi,x
 	sta	deltaDistY+1
-	sta	MATHE_C+1
-
-	lda	sideDistY+1
-	ldx	sideDistY
-	cpy	#0
-	bmi	.rayDirYPlus2
-
-	clc
-	txa
-	eor	#$ff
-	adc	#1
-	tax
-	lda	sideDistY+1
-	eor	#$ff
-	adc	#1
-.rayDirYPlus2:
-	stx	MATHE_E
 	sta	MATHE_E+1
+
 	NOP8
 	lda	MATHE_A+1
 	sta	sideDistY
 	lda	MATHE_A+2
 	sta	sideDistY+1
-	sty	stepY
 .rayDirYZero:
 
 	jsr	getWorld_XY
 
-;;->    while (hit == 0 ) {
-;;->      //jump to next map square, either in x-direction, or in y-direction
-;;->      if (sideDistX < sideDistY) {
-;;->        sideDistX += deltaDistX;
-;;->        mapX += stepX;
-;;->        side = 0;
-;;->      } else {
-;;->        sideDistY += deltaDistY;
-;;->        mapY += stepY;
-;;->        side = 1;
-;;->      }
-;;->      //Check if ray has hit a wall
-;;->      hit = map(mapX, mapY);
-;;->    }
-
-//->	plx
-//->	phx
-//->	brk	#1
-
+;;    while (hit == 0 ) {
+;;      //jump to next map square, either in x-direction, or in y-direction
+;;      if (sideDistX < sideDistY) {
+;;        sideDistX += deltaDistX;
+;;        mapX += stepX;
+;;        side = 0;
+;;      } else {
+;;        sideDistY += deltaDistY;
+;;        mapY += stepY;
+;;        side = 1;
+;;      }
+;;      //Check if ray has hit a wall
+;;      hit = map(mapX, mapY);
+;;    }
+	ldy	#0
 .wallloop:
-	stz	side
+	ldx	#0
 	CMPW	sideDistY,sideDistX
 	_IFCC
 	  lda	sideDistX
@@ -412,14 +405,15 @@ Start::
 	  sta	sideDistX+1
 
 	  clc
-	  lda stepX
-	  adc world_ptr
-	  sta world_ptr
-	  lda stepX+1
-	  adc world_ptr+1
-	  sta world_ptr+1
+	  tya
+	  adc	stepX
+	  tay
+	  lda	stepX+1
+//->	  adc world_ptr+1
+//->	  sta world_ptr+1
 	_ELSE
-	  inc side
+	  inx
+
 	  clc
 	  lda	sideDistY
 	  sta	perpWallDist
@@ -431,16 +425,21 @@ Start::
 	  sta	sideDistY+1
 
 	  clc
-	  lda stepY
-	  adc world_ptr
-	  sta world_ptr
-	  lda stepY+1
-	  adc world_ptr+1
-	  sta world_ptr+1
+	  tya
+	  adc	stepY
+	  tay
+	  lda	stepY+1
+//->	  adc world_ptr+1
+//->	  sta world_ptr+1
 	_ENDIF
-	lda	(world_ptr)
+
+	adc world_ptr+1
+	sta world_ptr+1
+
+	lda	(world_ptr),y
 	beq	.wallloop
 
+	stx	side
 	sta	hit
 	cmp	#1
 	beq	.edge
@@ -479,10 +478,10 @@ Start::
 	beq	.edge
 	sta	line_color
 .edge
-;;->      perpWallDist *= 2;
-;;->      int wallX; //where exactly  the wall was hit
-;;->      if (side == 0) wallX = (posY - perpWallDist * rayDirY/fp);
-;;->      else           wallX = (posX + perpWallDist * rayDirX/fp);
+
+;; if (side == 0) wallX = (posY - perpWallDist * rayDirY/fp);
+;; else           wallX = (posX + perpWallDist * rayDirX/fp);
+
 	lda	perpWallDist
 	sta	MATHE_B
 	asl
@@ -491,6 +490,7 @@ Start::
 	sta	MATHE_B+1
 	rol
 	sta	MATHE_C+1
+
 	bbr0	side,.t1
 
 	lda	rayDirX
@@ -518,42 +518,43 @@ Start::
 	bbs0	wallside,.no_mirror
 	eor	#63
 .no_mirror
-	sta	wallX
+//->	sta	wallX
+
+	ldx	#102
+	stz	MATHE_A
+	stx	MATHE_A+2
+	stz	MATHE_A+3	; start divide
 
 	tay
 
 	lda	hit
 	lsr
 	lsr
-	tax
-	lda	textures_lolo,x
-	sta	tmp0
-	lda	textures_lohi,x
-	sta	tmp0+1
-	lda	(tmp0),y
+	cmp	lhit
+	_IFNE
+	  sta	lhit
+	  tax
+	  lda	textures_lolo,x
+	  sta	textureLo
+	  lda	textures_lohi,x
+	  sta	textureLo+1
+	  lda	textures_hilo,x
+	  sta	textureHi
+	  lda	textures_hihi,x
+	  sta	textureHi+1
+	_ENDIF
+
+	lda	(textureLo),y
 	sta	line_data
-	lda	textures_hilo,x
-	sta	tmp0
-	lda	textures_hihi,x
-	sta	tmp0+1
-	lda	(tmp0),y
+	lda	(textureHi),y
 	sta	line_data+1
 
-//->    int perpWallDist;
-//->    if (side == 0) perpWallDist = (sideDistX - deltaDistX);
-//->    else           perpWallDist = (sideDistY - deltaDistY);
-
-	lda	#102
-	stz	MATHE_A
-	stz	MATHE_A+1
-	sta	MATHE_A+2
-	stz	MATHE_A+3
-	WAITSUZY
+	WAITSUZY		; wait for divide to finish
 
 	lda	MATHE_D+1
 	ldx	MATHE_D+2
-	stx	tmp1+1
 
+	stx	tmp1+1
 	sta	tmp1
 	lsr	tmp1+1
 	ror	tmp1
@@ -579,27 +580,41 @@ Start::
 	LDAY	lineSCB
 	jsr	DrawSprite
 
-	plx
-	dex
-	cpx	#$ff
+	pla
+	dec
+ IF HALF_REZ = 1
+	bmi	.done
+ ELSE
+	cmp	#$ff
 	beq	.done
+ ENDIF
 	jmp	.xloop
 .done
 
-	SET_XY 0,0
+	lda	vbl_count
+	pha
+
+	SET_XY 1,0
+	PRINT info
+
+	SET_XY 8,0
 	lda posX+1
 	jsr PrintHex
 	lda posX
 	jsr PrintHex
-	inc CurrX
-	inc CurrX
+
+	SET_XY 35,0
 	lda posY+1
 	jsr PrintHex
 	lda posY
 	jsr PrintHex
-	inc CurrX
-	inc CurrX
+
+	SET_XY 62,0
 	lda angle
+	jsr PrintDecA
+
+	SET_XY 93,0
+	pla
 	jsr PrintDecA
 
 .0
@@ -608,6 +623,8 @@ Start::
 	beq	.1
 .cont
 	jmp	.loop
+info:	dc.b "X:     Y:     A:    VBL:   ",0
+
 .1
 	lda Cursor
 	beq .cont
@@ -789,11 +806,12 @@ getDirPlane::
 	sta	dirYhalf
 	rts
 ;;; ----------------------------------------
-;;; Multiply A:Y by 6 and divide by 8
+;;; Multiply A:Y by 0.781 (FOV)
 ;;;
 mul6div8::
 	sta	MATHE_C
 	sty	MATHE_C+1
+
 	lda	#200
 	sta	MATHE_E
 	stz	MATHE_E+1
@@ -805,13 +823,21 @@ mul6div8::
 ;;; Multiply x:x+1 by 410 (256*256/160)
 ;;;
 mulX_410::
-	lda	0,x
+ IF HALF_REZ = 1
+	lda	#<819
 	sta	MATHE_C
-	lda	1,x
+	lda	#>819
 	sta	MATHE_C+1
-	lda	#<409
+ ELSE
+	lda	#<810
+	sta	MATHE_C
+	lda	#>410
+	sta	MATHE_C+1
+ ENDIF
+mulX_410_b::
+	lda	0,x
 	sta	MATHE_E
-	lda	#>409
+	lda	1,x
 	sta	MATHE_E+1
 	NOP8
 	lda	MATHE_A+1
@@ -841,7 +867,11 @@ line_data:
 	dc.w 0
 line_x	dc.w 0
 line_y	dc.w 51
+ IF HALF_REZ = 1
+	dc.w $200
+ ELSE
 	dc.w $100
+ ENDIF
 line_ysize
 	dc.w $100
 line_color:
@@ -877,6 +907,7 @@ HBL::
 
 ;;; ----------------------------------------
 VBL::
+	inc	vbl_count
 	lda	#3
 	sta	hbl_count
 	stz	$fdb0
@@ -932,3 +963,6 @@ textures_hilo:
 	dc.b	<wall1_hi,<phobyx_hi, <mandel_hi
 textures_hihi:
 	dc.b	>wall1_hi,>phobyx_hi, >mandel_hi
+
+END::
+	echo "END:%H END"
