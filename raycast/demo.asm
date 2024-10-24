@@ -15,7 +15,9 @@ Baudrate	set 62500
 screen1		equ $FFF0-SCREEN.LEN
 screen0		equ screen1-SCREEN.LEN
 
-START_MEM	EQU screen0-SCREEN.LEN
+START_MEM	EQU screen0-1024
+
+
 
 	include <macros/help.mac>
 	include <macros/if_while.mac>
@@ -82,6 +84,7 @@ textureHi	ds 2
 tmp0		ds 2
 tmp1		ds 2
 vbl_count	ds 2
+step		ds 1
  END_ZP
 	echo "hit       :%Hhit"
 
@@ -150,13 +153,16 @@ Start::
 	lda	#START_ANGLE
 	sta	angle
 
-	MOVEI $bc6,posX
-	MOVEI $ab8,posY
-	lda	#220
+	MOVEI $614,posX
+	MOVEI $6e9,posY
+	lda	#52
 	sta	angle
 
+
+	stz	step
 .newDirLoop:
 	jsr	getDirPlane
+
 ;
 ; main-loop
 ;
@@ -168,6 +174,12 @@ Start::
 
 	LDAY skyFloorSCB
 	jsr DrawSprite
+
+	lda	step
+	_IFNE
+	  dec	step
+	_ENDIF
+	sta	VOFF
 
 	clc
 	lda	dirX
@@ -212,9 +224,9 @@ Start::
  IF HALF_REZ = 1
 	lda	#79
  ELSE
-	lda	#160
+	lda	#159
  ENDIF
-	sta	lhit
+	sta	lhit		; preset last texture
 .xloop
 	pha
  IF HALF_REZ = 1
@@ -229,6 +241,7 @@ Start::
 	stz	stepX+1
 	stz	stepY
 	stz	stepY+1
+	lda	#$ff
 	sta	deltaDistX
 	sta	deltaDistX+1
 	sta	deltaDistY
@@ -275,6 +288,7 @@ Start::
 	beq	.rayDirXZero
 
 	bbr7	rayDirX+1,.rayDirPlus
+
 	txa
 	eor	#$ff
 	inc
@@ -337,28 +351,26 @@ Start::
 	lda	tmp0
 	beq	.rayDirYZero
 
-	ldy	#-16
+	lda	#-16
 	dec	stepY+1
+	ldy	sideDistY
+
 	bbr7	rayDirY+1,.rayDirYPlus
 
 	txa
 	eor	#$ff
 	inc
 	tax
-	ldy	#16
-	stz	stepY+1
-.rayDirYPlus
-	sty	stepY
-
-	lda	sideDistY
-
-	iny
-	bmi	.rayDirYPlus2	; -16 => -15, still < 0
-
+	tya
 	eor	#$ff
 	inc
-.rayDirYPlus2:
-	sta	MATHE_C
+	tay
+	lda	#16
+	stz	stepY+1
+.rayDirYPlus
+	sta	stepY
+
+	sty	MATHE_C
 
 	lda	deltatab_lo,x
 	sta	deltaDistY
@@ -376,71 +388,8 @@ Start::
 
 	jsr	getWorld_XY
 
-;;    while (hit == 0 ) {
-;;      //jump to next map square, either in x-direction, or in y-direction
-;;      if (sideDistX < sideDistY) {
-;;        sideDistX += deltaDistX;
-;;        mapX += stepX;
-;;        side = 0;
-;;      } else {
-;;        sideDistY += deltaDistY;
-;;        mapY += stepY;
-;;        side = 1;
-;;      }
-;;      //Check if ray has hit a wall
-;;      hit = map(mapX, mapY);
-;;    }
-	ldy	#0
-.wallloop:
-	ldx	#0
-	CMPW	sideDistY,sideDistX
-	_IFCC
-	  lda	sideDistX
-	  sta	perpWallDist
-	  adc	deltaDistX
-	  sta	sideDistX
-	  lda	sideDistX+1
-	  sta	perpWallDist+1
-	  adc	deltaDistX+1
-	  sta	sideDistX+1
+	jsr	scanMap
 
-	  clc
-	  tya
-	  adc	stepX
-	  tay
-	  lda	stepX+1
-//->	  adc world_ptr+1
-//->	  sta world_ptr+1
-	_ELSE
-	  inx
-
-	  clc
-	  lda	sideDistY
-	  sta	perpWallDist
-	  adc	deltaDistY
-	  sta	sideDistY
-	  lda	sideDistY+1
-	  sta	perpWallDist+1
-	  adc	deltaDistY+1
-	  sta	sideDistY+1
-
-	  clc
-	  tya
-	  adc	stepY
-	  tay
-	  lda	stepY+1
-//->	  adc world_ptr+1
-//->	  sta world_ptr+1
-	_ENDIF
-
-	adc world_ptr+1
-	sta world_ptr+1
-
-	lda	(world_ptr),y
-	beq	.wallloop
-
-	stx	side
-	sta	hit
 	cmp	#1
 	beq	.edge
 	tax
@@ -520,7 +469,7 @@ Start::
 .no_mirror
 //->	sta	wallX
 
-	ldx	#102
+	ldx	#120
 	stz	MATHE_A
 	stx	MATHE_A+2
 	stz	MATHE_A+3	; start divide
@@ -590,6 +539,7 @@ Start::
  ENDIF
 	jmp	.xloop
 .done
+	stz	VOFF
 
 	lda	vbl_count
 	pha
@@ -623,6 +573,7 @@ Start::
 	beq	.1
 .cont
 	jmp	.loop
+
 info:	dc.b "X:     Y:     A:    VBL:   ",0
 
 .1
@@ -647,10 +598,81 @@ info:	dc.b "X:     Y:     A:    VBL:   ",0
 	  _ELSE
 	    jsr moveBackward
 	  _ENDIF
+	  _IFEQ step
+	  lda	#4
+	  sta	step
+	  _ENDIF
 	_ENDIF
 
 	jmp .newDirLoop
 
+;;; ----------------------------------------
+;;    while (hit == 0 ) {
+;;      //jump to next map square, either in x-direction, or in y-direction
+;;      if (sideDistX < sideDistY) {
+;;        perpWallDist = sideDistX;
+;;        sideDistX += deltaDistX;
+;;        mapX += stepX;
+;;        side = 0;
+;;      } else {
+;;        perpWallDist = sideDistY;
+;;        sideDistY += deltaDistY;
+;;        mapY += stepY;
+;;        side = 1;
+;;      }
+;;      //Check if ray has hit a wall
+;;      hit = map(mapX, mapY);
+;;    }
+
+scanMap::
+.wallloop:
+	ldx	#0
+	CMPW	sideDistY,sideDistX
+	_IFCC
+	  lda	sideDistX
+	  sta	perpWallDist
+	  adc	deltaDistX
+	  sta	sideDistX
+	  lda	sideDistX+1
+	  sta	perpWallDist+1
+	  adc	deltaDistX+1
+	  sta	sideDistX+1
+
+	  clc
+	  tya
+	  adc	stepX
+	  tay
+	  lda	stepX+1
+	_ELSE
+	  inx
+
+	  clc
+	  lda	sideDistY
+	  sta	perpWallDist
+	  adc	deltaDistY
+	  sta	sideDistY
+	  lda	sideDistY+1
+	  sta	perpWallDist+1
+	  adc	deltaDistY+1
+	  sta	sideDistY+1
+
+	  clc
+	  tya
+	  adc	stepY
+	  tay
+	  lda	stepY+1
+	_ENDIF
+
+	adc world_ptr+1
+	sta world_ptr+1
+
+	lda	(world_ptr),y
+	beq	.wallloop
+
+	stx	side
+	sta	hit
+
+	rts
 ;;; ----------------------------------------
 ;;; Move dirXhalf step backward
 moveBackward::
@@ -739,19 +761,19 @@ getWorld_XY::
 	jsr	mulAY
 	clc
 	adc	#<world
-	sta	world_ptr
+	tay
 	lda	MATHE_A+2
 	adc	#>world
 	sta	world_ptr+1
 
 	clc
-	lda	posX+1
-	adc	world_ptr
-	sta	world_ptr
+	tya
+	adc	posX+1
+	tay
 	_IFCS
-	  inc	world_ptr+1
+	  sta	world_ptr+1
 	_ENDIF
-	lda	(world_ptr)
+	lda	(world_ptr),y
 	rts
 
 ;;; ----------------------------------------
@@ -812,7 +834,7 @@ mul6div8::
 	sta	MATHE_C
 	sty	MATHE_C+1
 
-	lda	#200
+	lda	#220
 	sta	MATHE_E
 	stz	MATHE_E+1
 	NOP8
@@ -877,6 +899,7 @@ line_ysize
 line_color:
 	dc.b $01,$23,$45,$67,$89,$AB,$CD,$EF
 
+
 ;;; ----------------------------------------
 ;;; horizontal interrupt for the sky
 
@@ -904,7 +927,6 @@ HBL::
 	  _ENDIF
 	_ENDIF
 	END_IRQ
-
 ;;; ----------------------------------------
 VBL::
 	inc	vbl_count
@@ -938,8 +960,6 @@ cls_data
 	include <includes/hexdez.inc>
 	include <includes/font.inc>
 	include <includes/draw_spr.inc>
-	include <includes/font2.hlp>
-
 pal
 ;;;          2               6               A
  DP 000,CBC,989,656,424,9B8,8A7,796,685,DEE,ABB,788,555,000,222,FFF
@@ -949,11 +969,12 @@ pal
 
 	include "sintab.inc"
 	include "deltatab.inc"
-	include "world.inc"
 	include "mandel.inc"
 	include "phobyx.inc"
 	include "wall1.inc"
+
 ;;; ----------------------------------------
+
 textures_lolo:
 	dc.b	 <wall1_lo,<phobyx_lo, <mandel_lo
 textures_lohi:
@@ -964,5 +985,13 @@ textures_hilo:
 textures_hihi:
 	dc.b	>wall1_hi,>phobyx_hi, >mandel_hi
 
+	align 256
+	include "world.inc"
+
+	;; should be last!
+	include <includes/font2.hlp>
 END::
 	echo "END:%H END"
+	echo "irq_vectors: %H irq_vectors"
+	echo "screen0: %Hscreen0"
+	echo "screen1: %Hscreen1"
