@@ -1,6 +1,7 @@
-START_X		equ 3
-START_Y		equ 5
-START_ANGLE	equ 68
+START_X		equ $300
+START_Y		equ $700
+START_ANGLE	equ 180
+
 
 HALF_REZ	equ 0
 
@@ -48,7 +49,7 @@ hbl_count	ds 1
 hit		ds 1
 wallside	ds 1
 
-stepX		ds 2
+stepX		ds 1
 posX		ds 2
 dirX::		ds 2
 planeX::	ds 2
@@ -57,7 +58,7 @@ sideDistX::	ds 2
 deltaDistX	ds 2
 dirXhalf	ds 2
 
-stepY		ds 2
+stepY		ds 1
 posY		ds 2
 dirY		ds 2
 planeY		ds 2
@@ -144,18 +145,9 @@ Start::
 
 	SETRGB pal		; set color
 
-	lda	#$40
-	sta	posX
-	lda	#START_X
-	sta	posX+1
-	lda	#START_Y
-	sta	posY+1
+	MOVEI 	START_X,posX
+	MOVEI 	START_Y,posY
 	lda	#START_ANGLE
-	sta	angle
-
-	MOVEI $614,posX
-	MOVEI $6e9,posY
-	lda	#52
 	sta	angle
 
 
@@ -175,11 +167,11 @@ Start::
 	LDAY skyFloorSCB
 	jsr DrawSprite
 
-	lda	step
-	_IFNE
-	  dec	step
-	_ENDIF
-	sta	VOFF
+//->	lda	step
+//->	_IFNE
+//->	  dec	step
+//->	_ENDIF
+//->	sta	VOFF
 
 	clc
 	lda	dirX
@@ -238,9 +230,7 @@ Start::
 	sta	line_color
 
 	stz	stepX
-	stz	stepX+1
 	stz	stepY
-	stz	stepY+1
 	lda	#$ff
 	sta	deltaDistX
 	sta	deltaDistX+1
@@ -294,7 +284,6 @@ Start::
 	inc
 	tax
 	ldy	#$ff
-	sty	stepX+1
 .rayDirPlus
 	sty	stepX
 
@@ -303,8 +292,7 @@ Start::
 	iny
 	beq	.rayDirMinus
 
-	eor	#$ff
-	inc
+	eor	#$ff		; 1s complemnent to avoid carry
 .rayDirMinus:
 	sta	MATHE_C
 	lda	deltatab_lo,x
@@ -351,8 +339,7 @@ Start::
 	lda	tmp0
 	beq	.rayDirYZero
 
-	lda	#-16
-	dec	stepY+1
+	lda	#16
 	ldy	sideDistY
 
 	bbr7	rayDirY+1,.rayDirYPlus
@@ -361,12 +348,11 @@ Start::
 	eor	#$ff
 	inc
 	tax
+
 	tya
-	eor	#$ff
-	inc
+	eor	#$ff		; 1s complemnent to avoid carry
 	tay
-	lda	#16
-	stz	stepY+1
+	lda	#-16
 .rayDirYPlus
 	sta	stepY
 
@@ -388,8 +374,10 @@ Start::
 
 	jsr	getWorld_XY
 
+//->	brk	#1
 	jsr	scanMap
 
+//->	brk	#1
 	cmp	#1
 	beq	.edge
 	tax
@@ -408,20 +396,16 @@ Start::
 ;;      }
 ;;    }
 
-	bbs0	side,.left_right
-	ldx	#0
-	lda	stepX+1
-	bpl	.wallside_inc
-	bra	.done_wallside
+	lda	side
+	bne	.left_right
+	bit	stepX
+	SKIP2
 .left_right
-	ldx	#2
-	lda	stepY+1
-	bpl	.done_wallside
-.wallside_inc:
-	inx
+	bit	stepY
+	bmi	.done_wallside
+	inc
 .done_wallside
-	stx	wallside
-	txa
+	sta	wallside
 	clc
 	adc	base_color
 	beq	.edge
@@ -440,7 +424,7 @@ Start::
 	rol
 	sta	MATHE_C+1
 
-	bbr0	side,.t1
+	bbr1	side,.t1
 
 	lda	rayDirX
 	sta	MATHE_E
@@ -464,17 +448,13 @@ Start::
 .t9
 	lsr
 	lsr
-	bbs0	wallside,.no_mirror
-	eor	#63
-.no_mirror
-//->	sta	wallX
+	tay
 
-	ldx	#120
+
+	ldx	#102
 	stz	MATHE_A
 	stx	MATHE_A+2
 	stz	MATHE_A+3	; start divide
-
-	tay
 
 	lda	hit
 	lsr
@@ -492,6 +472,15 @@ Start::
 	  lda	textures_hihi,x
 	  sta	textureHi+1
 	_ENDIF
+
+	lda	lhit
+	cmp	#3
+	beq	.no_mirror
+	bbs0	wallside,.no_mirror
+	tya
+	eor	#63
+	tay
+.no_mirror
 
 	lda	(textureLo),y
 	sta	line_data
@@ -641,10 +630,8 @@ scanMap::
 	  clc
 	  tya
 	  adc	stepX
-	  tay
-	  lda	stepX+1
 	_ELSE
-	  inx
+	  ldx #2
 
 	  clc
 	  lda	sideDistY
@@ -656,16 +643,12 @@ scanMap::
 	  adc	deltaDistY+1
 	  sta	sideDistY+1
 
-	  clc
+	  sec
 	  tya
-	  adc	stepY
-	  tay
-	  lda	stepY+1
+	  sbc	stepY
+
 	_ENDIF
-
-	adc world_ptr+1
-	sta world_ptr+1
-
+	  tay
 	lda	(world_ptr),y
 	beq	.wallloop
 
@@ -771,7 +754,7 @@ getWorld_XY::
 	adc	posX+1
 	tay
 	_IFCS
-	  sta	world_ptr+1
+	  inc	world_ptr+1
 	_ENDIF
 	lda	(world_ptr),y
 	rts
@@ -833,8 +816,11 @@ getDirPlane::
 mul6div8::
 	sta	MATHE_C
 	sty	MATHE_C+1
-
-	lda	#220
+ IF HALF_REZ = 1
+	lda	#180
+ ELSE
+	lda	#190
+ ENDIF
 	sta	MATHE_E
 	stz	MATHE_E+1
 	NOP8
@@ -851,7 +837,7 @@ mulX_410::
 	lda	#>819
 	sta	MATHE_C+1
  ELSE
-	lda	#<810
+	lda	#<410
 	sta	MATHE_C
 	lda	#>410
 	sta	MATHE_C+1
@@ -911,7 +897,7 @@ HBL::
 	    lda	$fdb0
 	    adc	#$10
 	    _IFCS
-	      lda #20
+	      lda #18
 	      dec floor
 	    _ELSE
 	      sta $fdb0
@@ -972,18 +958,19 @@ pal
 	include "mandel.inc"
 	include "phobyx.inc"
 	include "wall1.inc"
+	include "door.inc"
 
 ;;; ----------------------------------------
 
 textures_lolo:
-	dc.b	 <wall1_lo,<phobyx_lo, <mandel_lo
+	dc.b	 <wall1_lo,<phobyx_lo, <mandel_lo,<door_lo
 textures_lohi:
-	dc.b	 >wall1_lo,>phobyx_lo, >mandel_lo
+	dc.b	 >wall1_lo,>phobyx_lo, >mandel_lo,>door_lo
 
 textures_hilo:
-	dc.b	<wall1_hi,<phobyx_hi, <mandel_hi
+	dc.b	<wall1_hi,<phobyx_hi, <mandel_hi,<door_hi
 textures_hihi:
-	dc.b	>wall1_hi,>phobyx_hi, >mandel_hi
+	dc.b	>wall1_hi,>phobyx_hi, >mandel_hi,>door_hi
 
 	align 256
 	include "world.inc"
@@ -992,6 +979,7 @@ textures_hihi:
 	include <includes/font2.hlp>
 END::
 	echo "END:%H END"
+	echo "world:%H world"
 	echo "irq_vectors: %H irq_vectors"
 	echo "screen0: %Hscreen0"
 	echo "screen1: %Hscreen1"
