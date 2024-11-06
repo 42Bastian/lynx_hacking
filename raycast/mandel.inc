@@ -67,12 +67,12 @@ ma	set mandel0
 mandel_lo:
 	rept 64
 	dc.b <ma
-ma	set ma+129
+ma	set ma+SPR_SIZE
 	endr
 
 ma	set mandel0
 mandel_hi:
 	rept 64
 	dc.b >ma
-ma	set ma+129
+ma	set ma+SPR_SIZE
 	endr

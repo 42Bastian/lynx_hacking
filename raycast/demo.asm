@@ -2,8 +2,9 @@ START_X		equ $300
 START_Y		equ $700
 START_ANGLE	equ 180
 
-
+ IFND HALF_REZ
 HALF_REZ	equ 0
+ ENDIF
 
 Baudrate	set 62500
 
@@ -446,15 +447,15 @@ Start::
 	lda	posY
 	sbc	MATHE_A+1
 .t9
+	stz	MATHE_A
+	ldx	#<(102*4)
+	stx	MATHE_A+2
+	ldx	#>(102*4)
+	stx	MATHE_A+3	; start divide (*4 => /64)
+
 	lsr
 	lsr
 	tay
-
-
-	ldx	#102
-	stz	MATHE_A
-	stx	MATHE_A+2
-	stz	MATHE_A+3	; start divide
 
 	lda	hit
 	lsr
@@ -490,30 +491,9 @@ Start::
 	WAITSUZY		; wait for divide to finish
 
 	lda	MATHE_D+1
-	ldx	MATHE_D+2
-
-	stx	tmp1+1
-	sta	tmp1
-	lsr	tmp1+1
-	ror	tmp1
-
-	stx	tmp0		; div 64 => mul 4
-	asl
-	rol	tmp0
-	asl
-	rol	tmp0
-
 	sta	line_ysize
-	lda	tmp0
+	lda	MATHE_D+2
 	sta	line_ysize+1
-
-	sec
-	lda	#51
-	sbc	tmp1
-	sta	line_y
-	lda	#0
-	sbc	tmp1+1
-	sta	line_y+1	; power of Lynx: negative Y!
 
 	LDAY	lineSCB
 	jsr	DrawSprite
@@ -648,7 +628,7 @@ scanMap::
 	  sbc	stepY
 
 	_ENDIF
-	  tay
+	tay
 	lda	(world_ptr),y
 	beq	.wallloop
 
@@ -874,7 +854,7 @@ lineSCB:
 line_data:
 	dc.w 0
 line_x	dc.w 0
-line_y	dc.w 51
+	dc.w 51
  IF HALF_REZ = 1
 	dc.w $200
  ELSE
@@ -955,6 +935,8 @@ pal
 
 	include "sintab.inc"
 	include "deltatab.inc"
+SPR_SIZE	equ 130
+
 	include "mandel.inc"
 	include "phobyx.inc"
 	include "wall1.inc"

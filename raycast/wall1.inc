@@ -27,7 +27,7 @@ wall125: ibytes "spr/wall1000025.spr"
 wall126: ibytes "spr/wall1000026.spr"
 wall127: ibytes "spr/wall1000027.spr"
 wall128: ibytes "spr/wall1000028.spr"
-wall129: ibytes "spr/wall1000029.spr"
+wallSPR_SIZE: ibytes "spr/wall1000029.spr"
 wall130: ibytes "spr/wall1000030.spr"
 wall131: ibytes "spr/wall1000031.spr"
 wall132: ibytes "spr/wall1000032.spr"
@@ -67,12 +67,12 @@ ma	set wall10
 wall1_lo:
 	rept 64
 	dc.b <ma
-ma	set ma+129
+ma	set ma+SPR_SIZE
 	endr
 
 ma	set wall10
 wall1_hi:
 	rept 64
 	dc.b >ma
-ma	set ma+129
+ma	set ma+SPR_SIZE
 	endr

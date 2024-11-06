@@ -14,6 +14,10 @@ phobyx.inc: spr/phobyx000000.spr
 door.inc: spr/door000000.spr
 	touch $@
 
+ifeq ($(HALF_REZ),1)
+ASFLAGS+=-D HALF_REZ=1
+endif
+
 
 %.o: %.asm
 	@lyxass  $(ASFLAGS) $<
@@ -31,13 +35,13 @@ real-clean:
 	@rm -f *.o
 
 spr/mandel000000.spr: mandel.sps
-	sprpck -u -t2 -i064064 -S001064 -r064001 mandel.sps spr/mandel
+	sprpck -u -t2 -i064064 -S001064 -r064001 -a000032 mandel.sps spr/mandel
 
 spr/phobyx000000.spr: phobyx.pcx
-	sprpck -u -t3 -i064064 -S001064 -r064001 phobyx.pcx spr/phobyx
+	sprpck -u -t3 -i064064 -S001064 -r064001 -a000032 phobyx.pcx spr/phobyx
 
 spr/wall1000000.spr: wall1.pcx
-	sprpck -u -t3 -i064064 -S001064 -r064001 wall1.pcx spr/wall1
+	sprpck -u -t3 -i064064 -S001064 -r064001 -a000032 wall1.pcx spr/wall1
 
 spr/door000000.spr: door.pcx
-	sprpck -u -t3 -i064064 -S001064 -r064001 door.pcx spr/door
+	sprpck -u -t3 -i064064 -S001064 -r064001 -a000032 door.pcx spr/door
