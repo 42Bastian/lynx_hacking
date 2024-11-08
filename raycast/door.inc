@@ -1,3 +1,4 @@
+;-*-asm-*-
 door0:  ibytes "spr/door000000.spr"
 door1:  ibytes "spr/door000001.spr"
 door2:  ibytes "spr/door000002.spr"
@@ -30,49 +31,17 @@ door28: ibytes "spr/door000028.spr"
 door29: ibytes "spr/door000029.spr"
 door30: ibytes "spr/door000030.spr"
 door31: ibytes "spr/door000031.spr"
-door32: ibytes "spr/door000032.spr"
-door33: ibytes "spr/door000033.spr"
-door34: ibytes "spr/door000034.spr"
-door35: ibytes "spr/door000035.spr"
-door36: ibytes "spr/door000036.spr"
-door37: ibytes "spr/door000037.spr"
-door38: ibytes "spr/door000038.spr"
-door39: ibytes "spr/door000039.spr"
-door40: ibytes "spr/door000040.spr"
-door41: ibytes "spr/door000041.spr"
-door42: ibytes "spr/door000042.spr"
-door43: ibytes "spr/door000043.spr"
-door44: ibytes "spr/door000044.spr"
-door45: ibytes "spr/door000045.spr"
-door46: ibytes "spr/door000046.spr"
-door47: ibytes "spr/door000047.spr"
-door48: ibytes "spr/door000048.spr"
-door49: ibytes "spr/door000049.spr"
-door50: ibytes "spr/door000050.spr"
-door51: ibytes "spr/door000051.spr"
-door52: ibytes "spr/door000052.spr"
-door53: ibytes "spr/door000053.spr"
-door54: ibytes "spr/door000054.spr"
-door55: ibytes "spr/door000055.spr"
-door56: ibytes "spr/door000056.spr"
-door57: ibytes "spr/door000057.spr"
-door58: ibytes "spr/door000058.spr"
-door59: ibytes "spr/door000059.spr"
-door60: ibytes "spr/door000060.spr"
-door61: ibytes "spr/door000061.spr"
-door62: ibytes "spr/door000062.spr"
-door63: ibytes "spr/door000063.spr"
 
 ma	set door0
 door_lo:
-	rept 64
+	rept 32
 	dc.b <ma
 ma	set ma+SPR_SIZE
 	endr
 
 ma	set door0
 door_hi:
-	rept 64
+	rept 32
 	dc.b >ma
 ma	set ma+SPR_SIZE
 	endr

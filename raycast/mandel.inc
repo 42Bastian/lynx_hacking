@@ -1,3 +1,4 @@
+;-*-asm-*-
 mandel0:  ibytes "spr/mandel000000.spr"
 mandel1:  ibytes "spr/mandel000001.spr"
 mandel2:  ibytes "spr/mandel000002.spr"
@@ -30,49 +31,17 @@ mandel28: ibytes "spr/mandel000028.spr"
 mandel29: ibytes "spr/mandel000029.spr"
 mandel30: ibytes "spr/mandel000030.spr"
 mandel31: ibytes "spr/mandel000031.spr"
-mandel32: ibytes "spr/mandel000032.spr"
-mandel33: ibytes "spr/mandel000033.spr"
-mandel34: ibytes "spr/mandel000034.spr"
-mandel35: ibytes "spr/mandel000035.spr"
-mandel36: ibytes "spr/mandel000036.spr"
-mandel37: ibytes "spr/mandel000037.spr"
-mandel38: ibytes "spr/mandel000038.spr"
-mandel39: ibytes "spr/mandel000039.spr"
-mandel40: ibytes "spr/mandel000040.spr"
-mandel41: ibytes "spr/mandel000041.spr"
-mandel42: ibytes "spr/mandel000042.spr"
-mandel43: ibytes "spr/mandel000043.spr"
-mandel44: ibytes "spr/mandel000044.spr"
-mandel45: ibytes "spr/mandel000045.spr"
-mandel46: ibytes "spr/mandel000046.spr"
-mandel47: ibytes "spr/mandel000047.spr"
-mandel48: ibytes "spr/mandel000048.spr"
-mandel49: ibytes "spr/mandel000049.spr"
-mandel50: ibytes "spr/mandel000050.spr"
-mandel51: ibytes "spr/mandel000051.spr"
-mandel52: ibytes "spr/mandel000052.spr"
-mandel53: ibytes "spr/mandel000053.spr"
-mandel54: ibytes "spr/mandel000054.spr"
-mandel55: ibytes "spr/mandel000055.spr"
-mandel56: ibytes "spr/mandel000056.spr"
-mandel57: ibytes "spr/mandel000057.spr"
-mandel58: ibytes "spr/mandel000058.spr"
-mandel59: ibytes "spr/mandel000059.spr"
-mandel60: ibytes "spr/mandel000060.spr"
-mandel61: ibytes "spr/mandel000061.spr"
-mandel62: ibytes "spr/mandel000062.spr"
-mandel63: ibytes "spr/mandel000063.spr"
 
 ma	set mandel0
 mandel_lo:
-	rept 64
+	rept 32
 	dc.b <ma
 ma	set ma+SPR_SIZE
 	endr
 
 ma	set mandel0
 mandel_hi:
-	rept 64
+	rept 32
 	dc.b >ma
 ma	set ma+SPR_SIZE
 	endr

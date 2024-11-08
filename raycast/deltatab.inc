@@ -1,3 +1,4 @@
+;-*-asm-*-
 deltatab_lo:
   dc.b $ff ,$FF ,$FF ,$AA ,$FF ,$99 ,$55 ,$49
   dc.b $FF ,$38 ,$CC ,$A2 ,$AA ,$D8 ,$24 ,$88

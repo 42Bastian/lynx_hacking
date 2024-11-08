@@ -1,3 +1,4 @@
+;-*-asm-*-
 wall10:  ibytes "spr/wall1000000.spr"
 wall11:  ibytes "spr/wall1000001.spr"
 wall12:  ibytes "spr/wall1000002.spr"
@@ -27,52 +28,20 @@ wall125: ibytes "spr/wall1000025.spr"
 wall126: ibytes "spr/wall1000026.spr"
 wall127: ibytes "spr/wall1000027.spr"
 wall128: ibytes "spr/wall1000028.spr"
-wallSPR_SIZE: ibytes "spr/wall1000029.spr"
+wall129: ibytes "spr/wall1000029.spr"
 wall130: ibytes "spr/wall1000030.spr"
 wall131: ibytes "spr/wall1000031.spr"
-wall132: ibytes "spr/wall1000032.spr"
-wall133: ibytes "spr/wall1000033.spr"
-wall134: ibytes "spr/wall1000034.spr"
-wall135: ibytes "spr/wall1000035.spr"
-wall136: ibytes "spr/wall1000036.spr"
-wall137: ibytes "spr/wall1000037.spr"
-wall138: ibytes "spr/wall1000038.spr"
-wall139: ibytes "spr/wall1000039.spr"
-wall140: ibytes "spr/wall1000040.spr"
-wall141: ibytes "spr/wall1000041.spr"
-wall142: ibytes "spr/wall1000042.spr"
-wall143: ibytes "spr/wall1000043.spr"
-wall144: ibytes "spr/wall1000044.spr"
-wall145: ibytes "spr/wall1000045.spr"
-wall146: ibytes "spr/wall1000046.spr"
-wall147: ibytes "spr/wall1000047.spr"
-wall148: ibytes "spr/wall1000048.spr"
-wall149: ibytes "spr/wall1000049.spr"
-wall150: ibytes "spr/wall1000050.spr"
-wall151: ibytes "spr/wall1000051.spr"
-wall152: ibytes "spr/wall1000052.spr"
-wall153: ibytes "spr/wall1000053.spr"
-wall154: ibytes "spr/wall1000054.spr"
-wall155: ibytes "spr/wall1000055.spr"
-wall156: ibytes "spr/wall1000056.spr"
-wall157: ibytes "spr/wall1000057.spr"
-wall158: ibytes "spr/wall1000058.spr"
-wall159: ibytes "spr/wall1000059.spr"
-wall160: ibytes "spr/wall1000060.spr"
-wall161: ibytes "spr/wall1000061.spr"
-wall162: ibytes "spr/wall1000062.spr"
-wall163: ibytes "spr/wall1000063.spr"
 
 ma	set wall10
 wall1_lo:
-	rept 64
+	rept 32
 	dc.b <ma
 ma	set ma+SPR_SIZE
 	endr
 
 ma	set wall10
 wall1_hi:
-	rept 64
+	rept 32
 	dc.b >ma
 ma	set ma+SPR_SIZE
 	endr

@@ -4,7 +4,7 @@ DEMO=raycast
 #ASFLAGS=-sh
 
 $(DEMO).o: $(DEMO).asm world.inc sintab.inc deltatab.inc mandel.inc phobyx.inc\
-	wall1.inc door.inc
+	wall1.inc door.inc frame.inc
 
 lnx: $(DEMO).lnx
 
@@ -15,6 +15,9 @@ wall1.inc: spr/wall1000000.spr
 phobyx.inc: spr/phobyx000000.spr
 	touch $@
 door.inc: spr/door000000.spr
+	touch $@
+
+frame.inc: spr/frame000000.spr
 	touch $@
 
 %.o: %.asm
@@ -35,13 +38,16 @@ real-clean:
 	@rm -f *.o *.lnx
 
 spr/mandel000000.spr: mandel.sps
-	sprpck -u -t2 -i064064 -S001064 -r064001 -a000032 mandel.sps spr/mandel
+	sprpck -u -t2 -i032032 -S001032 -r032001 -a000016 mandel.sps spr/mandel
 
 spr/phobyx000000.spr: phobyx.pcx
-	sprpck -u -t3 -i064064 -S001064 -r064001 -a000032 phobyx.pcx spr/phobyx
+	sprpck -u -t3 -i032032 -S001032 -r032001 -a000016 phobyx.pcx spr/phobyx
 
 spr/wall1000000.spr: wall1.pcx
-	sprpck -u -t3 -i064064 -S001064 -r064001 -a000032 wall1.pcx spr/wall1
+	sprpck -u -t3 -i032032 -S001032 -r032001 -a000016 wall1.pcx spr/wall1
 
 spr/door000000.spr: door.pcx
-	sprpck -u -t3 -i064064 -S001064 -r064001 -a000032 door.pcx spr/door
+	sprpck -u -t3 -i032032 -S001032 -r032001 -a000016 door.pcx spr/door
+
+spr/frame000000.spr: frame.pcx
+	sprpck -u -t3 -i032032 -S001032 -r032001 -a000016 frame.pcx spr/frame
