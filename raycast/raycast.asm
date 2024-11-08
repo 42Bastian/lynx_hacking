@@ -790,10 +790,7 @@ info:	dc.b "X:",13,13,"Y:",13,13,"A:",13,13,"VBL:",0
 ;;->        }
 
 scanMap::
-scanMapCont:
-
 .wallloop:
-
 	ldx	#0
 	CMPW	sideDistY,sideDistX
 	_IFCC
@@ -806,6 +803,16 @@ scanMapCont:
 	  adc	deltaDistX+1
 	  sta	sideDistX+1
 
+	  clc
+	  tya
+	  adc	stepX
+	  tay
+	  lda	(world_ptr),y
+	  beq	.wallloop
+	  cmp	#3<<2|2
+	  beq	.wallloop
+
+	  sta	hit
 	  MOVE	sideDistY,sideDist
 	  MOVE	posY,posXY
 	  sec
@@ -816,10 +823,6 @@ scanMapCont:
 	  sbc	rayDirY+1
 	  sta	rayDirXY+1
 	  ADDWABC perpWallDist,deltaDistXHalf,perpDoorDist
-
-	  clc
-	  tya
-	  adc	stepX
 	_ELSE
 	  ldx #2
 
@@ -832,27 +835,24 @@ scanMapCont:
 	  sta	perpWallDist+1
 	  adc	deltaDistY+1
 	  sta	sideDistY+1
+	  sec
+	  tya
+	  sbc	stepY
+	  tay
+	  lda	(world_ptr),y
+	  beq	.wallloop
+	  cmp	#3<<2|2
+	  beq	.wallloop
+	  sta	hit
 
 	  MOVE	posX,posXY
 	  MOVE	sideDistX,sideDist
 	  MOVE	rayDirX,rayDirXY
 	  ADDWABC perpWallDist,deltaDistYHalf,perpDoorDist
-
-	  sec
-	  tya
-	  sbc	stepY
 	_ENDIF
-	tay
-	lda	(world_ptr),y
-	beq	.wallloop1
-	cmp	#3<<2|2
-	bne	.done
-.wallloop1:
-	jmp	.wallloop
 .done
 	sty	world_ptr
 	stx	side
-	sta	hit
 	rts
 
 ;;; ----------------------------------------
