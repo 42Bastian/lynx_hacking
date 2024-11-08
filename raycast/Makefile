@@ -1,9 +1,12 @@
-DEMO=demo
+DEMO=raycast
 
-ASFLAGS=-sh
+
+#ASFLAGS=-sh
 
 $(DEMO).o: $(DEMO).asm world.inc sintab.inc deltatab.inc mandel.inc phobyx.inc\
 	wall1.inc door.inc
+
+lnx: $(DEMO).lnx
 
 mandel.inc: spr/mandel000000.spr
 	touch $@
@@ -14,17 +17,14 @@ phobyx.inc: spr/phobyx000000.spr
 door.inc: spr/door000000.spr
 	touch $@
 
-ifeq ($(HALF_REZ),1)
-ASFLAGS+=-D HALF_REZ=1
-endif
-
-
 %.o: %.asm
 	@lyxass  $(ASFLAGS) $<
 
 %.bin: %.asm
 	@lyxass -d $(ASFLAGS) -D LNX=1 -o  $@ $<
 
+%.lnx: %.asm
+	@lyxass -d $(ASFLAGS) -D LNX=1 -o  $@ $<
 
 include ../Rules.launch
 
@@ -32,7 +32,7 @@ clean:
 	@rm -f *.lnx *.lyx *.bin *~ *.equ
 
 real-clean:
-	@rm -f *.o
+	@rm -f *.o *.lnx
 
 spr/mandel000000.spr: mandel.sps
 	sprpck -u -t2 -i064064 -S001064 -r064001 -a000032 mandel.sps spr/mandel
