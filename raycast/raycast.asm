@@ -1,8 +1,8 @@
-START_X		equ $1b4
-START_Y		equ $46a
-START_ANGLE	equ 128
+START_X		equ $c20
+START_Y		equ $ec0
+START_ANGLE	equ 64
 
-MAX_X_REZ	equ 122
+MAX_X_REZ	equ 120
 
 HALF_REZ	equ 0
 
@@ -22,7 +22,7 @@ IRQ_SWITCHBUF_USR set 1
 screen1		equ $FFF0-SCREEN.LEN
 screen0		equ screen1-SCREEN.LEN
 
-START_MEM	EQU screen0-1024
+START_MEM	EQU $be00
 
 	include <macros/help.mac>
 	include <macros/if_while.mac>
@@ -37,7 +37,6 @@ START_MEM	EQU screen0-1024
 	include <vardefs/debug.var>
 	include <vardefs/irq.var>
 	include <vardefs/serial.var>
-
 	include <vardefs/mikey.var>
 	include <vardefs/suzy.var>
 	include <vardefs/font.var>
@@ -62,7 +61,8 @@ planeX		ds 2
 rayDirX		ds 2
 sideDistX	ds 2
 deltaDistX	ds 2
-dirXhalf	ds 2
+dirXHalf	ds 2
+dirX1_5		ds 2
 deltaDistXHalf	ds 2
 rayDirX0:	ds 3
 rayDirXdelta	ds 3
@@ -74,7 +74,8 @@ planeY		ds 2
 rayDirY		ds 2
 sideDistY	ds 2
 deltaDistY	ds 2
-dirYhalf	ds 2
+dirYHalf	ds 2
+dirY1_5		ds 2
 deltaDistYHalf	ds 2
 rayDirY0	ds 3
 rayDirYdelta	ds 3
@@ -83,8 +84,9 @@ perpWallDist	ds 2
 side		ds 1
 wallside	ds 1
 
-base_color	ds 1
 world_ptr	ds 2
+sprite_ptr	ds 2
+y_save		ds 1
 angle		ds 1
 
 lhit		ds 1
@@ -92,21 +94,36 @@ hit		ds 1
 textureLo	ds 2
 textureHi	ds 2
 
+slhit		ds 1
+spr_hit		ds 1
+spriteLo	ds 2
+spriteHi	ds 2
+spr_wallside	ds 1
+
 tmp0		ds 2
 tmp1		ds 2
 
 step		ds 1
 
-	;; half step variables for frames
+	;; Half step variables for frames
 sideDist	ds 2
-perpDoorDist	ds 2
 posXY		ds 2
 rayDirXY	ds 2
+perpDoorDist	ds 2
+
+sideDistSpr	ds 2
+posXYSpr	ds 2
+rayDirXYSpr	ds 2
+perpSpriteDist	ds 2
+
+
+spr_first_tx	ds 1
+
 	;; door variabls
 doorInc		ds 1
 doorPos		ds 1
 doorPtr		ds 2
-
+mul16		ds 16
  END_ZP
 	echo "hit       :%Hhit"
 	echo "stepX     :%HstepX"
@@ -116,7 +133,7 @@ doorPtr		ds 2
 	echo "rayDirX   :%HrayDirX"
 	echo "sideDistX :%HsideDistX"
 	echo "deltaDistX:%HdeltaDistX"
-	echo "dirXhalf  :%H dirXhalf"
+	echo "dirXHalf  :%H dirXHalf"
 	echo "--"
 	echo "rayDirX0  :%H rayDirX0"
 	echo "rayDirXd. :%H rayDirXdelta"
@@ -153,6 +170,7 @@ Start::
 
 	INITMIKEY
 	INITSUZY
+	FRAMERATE 60
 
 	lda	_SPRSYS
 	ora	#SIGNED_MATH
@@ -178,6 +196,22 @@ Start::
 	MOVEI 	START_Y,posY
 	lda	#START_ANGLE
 	sta	angle
+
+	lda	#0
+	ldx	#0
+	clc
+.initmul16
+	sta	mul16,x
+	inx
+	adc	#$10
+	bne	.initmul16
+
+	lda	#>world
+	sta	world_ptr+1
+	sta	doorPtr+1
+	lda	#>spritePos
+	sta	sprite_ptr+1
+
 
 	stz	doorInc
 	stz	doorPos
@@ -221,7 +255,9 @@ Start::
 	txa
 	ror
 	sta	rayDirX0+1
-	stz	rayDirX0
+	lda	#0
+	ror
+	sta	rayDirX0
 
 ;;; rayDirY0 = (dirY+planeY)/2 * FP
 
@@ -237,7 +273,9 @@ Start::
 	txa
 	ror
 	sta	rayDirY0+1
-	stz	rayDirY0
+	lda	#0
+	ror
+	sta	rayDirY0
 
 ;;; rayDirXDelta = planeX*(256*256/rez_x)
 
@@ -254,7 +292,7 @@ Start::
 	sta	rayDirYdelta
 	sty	rayDirYdelta+1
 	stx	rayDirYdelta+2
-
+	stz	spr_first_tx
  IF HALF_REZ = 1
 	lda	#MAX_X_REZ/2
  ELSE
@@ -263,9 +301,6 @@ Start::
 	sta	lhit		; preset last texture
 	jmp	.intoloop
 .xloop
-//->	lda	#$01
-//->	sta	line_color
-
 	lda	posX
 	sta	sideDistX
 	stz	sideDistX+1
@@ -300,8 +335,7 @@ Start::
 ;;      }
 ;;    }
 
-
-	ldy	#$01		; stepX
+	ldy	#1		; stepX
 
 	bbr7	rayDirX+1,.rayDirPlus
 
@@ -309,7 +343,7 @@ Start::
 	eor	#$ff
 	inc
 	tax
-	ldy	#$ff
+	ldy	#$ff		; dey
 .rayDirPlus
 	lda	sideDistX
 	sty	stepX
@@ -408,7 +442,12 @@ Start::
 	sta	deltaDistYHalf
 
 	jsr	getWorld_XY
+
+	lda	#$ff
+	sta	slhit
+	stz	spr_wallside
 .rescan:
+	stz	spr_hit
 	jsr	scanMap
 
 ;;    if ( side == 0 ) {
@@ -422,31 +461,16 @@ Start::
 ;;        wallside = 4; // left
 ;;      }
 ;;    }
-	ldy	side
+	lda	side
 	bne	.left_right
 	bit	stepX
 	SKIP2
 .left_right
 	bit	stepY
 	bmi	.done_wallside
-	iny
+	inc
 .done_wallside
-	sty	wallside
-
-	ldy	#1
-	sty	line_color
-
-	cmp	#1
-	_IFNE
-	  tax
-	  and	#3
-	  sta	base_color
-	  clc
-	  adc	base_color
-	  _IFNE
-	    sta	line_color
-	  _ENDIF
-	_ENDIF
+	sta	wallside
 
 ;; if (side == 0) wallX = (posY - perpWallDist * rayDirY/fp);
 ;; else           wallX = (posX + perpWallDist * rayDirX/fp);
@@ -459,95 +483,27 @@ Start::
 .door
 	  CMPWS sideDist,perpDoorDist
 	  _IFCS
-	    ldy	world_ptr
-	    stz	world_ptr
-	    bra .rescan
+	    ldy	y_save
+	    bra	.rescan
 	  _ENDIF
-	  lda	perpDoorDist
-	  sta	MATHE_B
-	  asl
-	  sta	MATHE_C
-	  lda	perpDoorDist+1
-	  sta	MATHE_B+1
-	  rol
-	  sta	MATHE_C+1
-	  lda	rayDirXY
-	  asl
-	  sta	MATHE_E
-	  lda	rayDirXY+1
-	  rol
-	  sta	MATHE_E+1
-	  NOP8
-	  lda	MATHE_A+2
-	  lsr
-	  lda	MATHE_A+1
-	  ror
-	  clc
-	  adc	posXY
+	  ldx	#sideDist
+	  jsr	doorSprite_textureX
 	_ELSE
-	  lda	perpWallDist
-	  sta	MATHE_B
-	  asl
-	  sta	MATHE_C
-	  lda	perpWallDist+1
-	  sta	MATHE_B+1
-	  rol
-	  sta	MATHE_C+1
-
-	  bbr1	side,.t1
-
-	  lda	rayDirX
-	  asl
-	  sta	MATHE_E
-	  lda	rayDirX+1
-	  rol
-	  sta	MATHE_E+1
-	  NOP8
-	  lda	MATHE_A+2
-	  lsr
-	  lda	MATHE_A+1
-	  ror
-	  clc
-	  adc	posX
-	  bra	.t9
-.t1
-	  lda	rayDirY
-	  asl
-	  sta	MATHE_E
-	  lda	rayDirY+1
-	  rol
-	  sta	MATHE_E+1
-	  NOP8
-	  lda	MATHE_A+2
-	  lsr
-	  lda	MATHE_A+1
-	  ror
-	  eor	#$ff
-	  sec
-	  adc	posY
-.t9
+	  jsr	wall_sizeTextureX
 	_ENDIF
-	stz	MATHE_A
-	ldx	#<(102*8)
-	stx	MATHE_A+2
-	ldx	#>(102*8)
-	stx	MATHE_A+3	; start divide (*4 => /64)
-
-	lsr
-	lsr
-	lsr
-	tay			; texX
 
 	lda	hit		; wall element
+	tax
+	bmi	.frame
 
 	cmp	#3<<2|3
 	bne	.no_door	; not a moving door
 
 	cpy	doorPos
 	bcc	.moving_door
-.do_rescan
-	ldy	world_ptr
-	stz	world_ptr
+
+	;; door not closed, so check background
+	ldy	y_save		; restore Y
 	jmp	.rescan
 
 .moving_door:
@@ -556,22 +512,22 @@ Start::
 	sbc	doorPos
 	and	#31
 	tay
-.no_door
+	txa
+	bra	.no_door
 
-	lda	hit
-	bpl	.no_flag
+.frame
 	and	#3
 	cmp	wallside
 	_IFEQ
-	  lda	#4<<2
+	  lda	#4<<2		; frame
 	_ELSE
-	  lda	#1<<2
+	  lda	#1<<2		; normal wall
 	_ENDIF
-.no_flag
+.no_door
 	lsr
 	lsr			; remove flags/color
 
-.found_texture:
+	;; check if last == current texture
 	tax
 	cpx	lhit
 	_IFNE
@@ -587,7 +543,7 @@ Start::
 	  txa
 	_ENDIF
 
-	cpx	#3
+	cpx	#3		; door?
 	beq	.no_mirror
 
 	bbs0	wallside,.no_mirror
@@ -600,6 +556,11 @@ Start::
 	sta	line_data
 	lda	(textureHi),y
 	sta	line_data+1
+//->	ora	line_data
+//->	_IFEQ
+//->	 ldy	y_save
+//->	 jmp	.rescan
+//->	_ENDIF
 	LDAY	lineSCB
 
 	WAITSUZY		; wait for divide to finish
@@ -611,6 +572,46 @@ Start::
 
 	jsr	DrawSprite
 
+	lda	spr_hit
+	bpl	.no_sprite
+	tax
+	CMPWS sideDistSpr,perpSpriteDist
+	_IFCC
+	  txa
+	  and	#$3f
+	  cmp	slhit
+	_IFNE
+	  sta	slhit
+	  tax
+	  lda	sprites_lolo,x
+	  sta	spriteLo
+	  lda	sprites_lohi,x
+	  sta	spriteLo+1
+	  lda	sprites_hilo,x
+	  sta	spriteHi
+	  lda	sprites_hihi,x
+	  sta	spriteHi+1
+	_ENDIF
+
+	  ldx	#sideDistSpr
+	  jsr	doorSprite_textureX
+
+	  lda	(spriteLo),y
+	  sta	sprite_data
+	  lda	(spriteHi),y
+	  sta	sprite_data+1
+	  ora	sprite_data
+	  beq	.no_sprite
+
+	  WAITSUZY
+	  lda	MATHE_D+1
+	  sta	sprite_ysize
+	  lda	MATHE_D+2
+	  sta	sprite_ysize+1
+	  LDAY	spriteSCB
+	  jsr	DrawSprite
+	_ENDIF
+.no_sprite
 	pla
 	beq	.done
 .intoloop
@@ -620,6 +621,7 @@ Start::
 	asl
  ENDIF
 	sta	line_x
+	sta	sprite_x
 	jmp	.xloop
 .done
  IF 0 = 1
@@ -684,6 +686,24 @@ Start::
 	SET_XY 2,51
 	pla
 	jsr PrintDecA
+
+	lda	#$3
+	sta	FG_Color
+
+	SET_XY 143,1
+	lda	dirX+1
+	jsr PrintHex
+	lda	dirX
+	jsr PrintHex
+
+	SET_XY 143,8
+	lda	dirY+1
+	jsr PrintHex
+	lda	dirY
+	jsr PrintHex
+	lda	#$F
+	sta	FG_Color
+
 
 .0
 	READKEY		; see MIKEY.MAC
@@ -763,6 +783,80 @@ Start::
 
 	jmp .newDirLoop
 
+
+;;; calc
+doorSprite_textureX::
+	lda	6,x
+	sta	MATHE_B
+	sta	MATHE_C
+	lda	7,x
+	sta	MATHE_B+1
+	sta	MATHE_C+1
+	lda	4,x
+	sta	MATHE_E
+	lda	5,x
+	sta	MATHE_E+1
+	NOP8
+	lda	MATHE_A+1
+	asl
+	clc
+	adc	2,x
+
+	stz	MATHE_A
+	ldx	#<(102*8)
+	stx	MATHE_A+2
+	ldx	#>(102*8)
+	stx	MATHE_A+3	; start divide (*4 => /64)
+
+	lsr
+	lsr
+	lsr
+	tay			; texX
+	rts
+
+wall_sizeTextureX:
+	lda	perpWallDist
+	sta	MATHE_B
+	sta	MATHE_C
+	lda	perpWallDist+1
+	sta	MATHE_B+1
+	sta	MATHE_C+1
+
+	bbr1	side,.t1
+
+	lda	rayDirX
+	sta	MATHE_E
+	lda	rayDirX+1
+	sta	MATHE_E+1
+	NOP8
+	lda	MATHE_A+1
+	asl
+	clc
+	adc	posX
+	bra	.t9
+.t1
+	lda	rayDirY
+	sta	MATHE_E
+	lda	rayDirY+1
+	sta	MATHE_E+1
+	NOP8
+	lda	MATHE_A+1
+	asl
+	sec
+	sbc	posY
+.t9
+	stz	MATHE_A
+	ldx	#<(102*8)
+	stx	MATHE_A+2
+	ldx	#>(102*8)
+	stx	MATHE_A+3	; start divide (*4 => /64)
+
+	lsr
+	lsr
+	lsr
+	tay			; texX
+	rts
+
 info:	dc.b "X:",13,13,"Y:",13,13,"A:",13,13,"VBL:",0
 ;;; ----------------------------------------
 ;;->        if (sideDistX < sideDistY) {
@@ -791,7 +885,6 @@ info:	dc.b "X:",13,13,"Y:",13,13,"A:",13,13,"VBL:",0
 
 scanMap::
 .wallloop:
-	ldx	#0
 	CMPW	sideDistY,sideDistX
 	_IFCC
 	  lda	sideDistX
@@ -807,25 +900,35 @@ scanMap::
 	  tya
 	  adc	stepX
 	  tay
+
 	  lda	(world_ptr),y
+	  bne	.check_door0
+.checksprite0
+	  bit	spr_hit
+	  bmi	.wallloop
+	  lda	(sprite_ptr),y
 	  beq	.wallloop
+	  ora	#$80
+	  sta	spr_hit
+	  ldx	#sideDistSpr
+	  jsr	saveSide0Data
+	  bra	.wallloop
+.check_door0
 	  cmp	#3<<2|2
-	  beq	.wallloop
+	  beq	.checksprite0
 
+	  ldx	#0
 	  sta	hit
-	  MOVE	sideDistY,sideDist
-	  MOVE	posY,posXY
-	  sec
-	  lda	#0
-	  sbc	rayDirY
-	  sta	rayDirXY
-	  lda	#0
-	  sbc	rayDirY+1
-	  sta	rayDirXY+1
-	  ADDWABC perpWallDist,deltaDistXHalf,perpDoorDist
-	_ELSE
-	  ldx #2
+	  lsr
+	  lsr
+	  cmp	#3
+	  bne	.done
 
+	  ldx	#sideDist
+	  jsr	saveSide0Data
+	  ldx	#0
+
+	_ELSE
 	  clc
 	  lda	sideDistY
 	  sta	perpWallDist
@@ -840,19 +943,116 @@ scanMap::
 	  sbc	stepY
 	  tay
 	  lda	(world_ptr),y
+	  bne	.check_door1
+.checksprite1
+	  bit	spr_hit
+	  bmi	.wallloop
+	  lda	(sprite_ptr),y
 	  beq	.wallloop
+	  ora	#$80
+	  sta	spr_hit
+	  ldx	#sideDistSpr
+	  jsr	saveSide1Data
+	  bra	.wallloop
+.check_door1
 	  cmp	#3<<2|2
-	  beq	.wallloop
-	  sta	hit
+	  beq	.checksprite1
 
-	  MOVE	posX,posXY
-	  MOVE	sideDistX,sideDist
-	  MOVE	rayDirX,rayDirXY
-	  ADDWABC perpWallDist,deltaDistYHalf,perpDoorDist
+	  ldx	#2
+	  sta	hit
+	  lsr
+	  lsr
+	  cmp	#3
+	  bne	.done
+
+	  ldx	#sideDist
+	  jsr	saveSide1Data
+	  ldx	#2
 	_ENDIF
 .done
-	sty	world_ptr
+	sty	y_save
 	stx	side
+	rts
+
+saveSide0Data:
+	lda	sideDistY
+	sta	0,x
+	lda	sideDistY+1
+	sta	1,x
+	lda	posY
+	sta	2,x
+	sec
+	lda	#0
+	sbc	rayDirY
+	sta	4,x
+	lda	#0
+	sbc	rayDirY+1
+	sta	5,x
+	clc
+	lda	perpWallDist
+	adc	deltaDistXHalf
+	sta	6,x
+	lda	perpWallDist+1
+	adc	deltaDistXHalf+1
+	sta	7,x
+	rts
+
+saveSide1Data:
+	lda	sideDistX
+	sta	0,x
+	lda	sideDistX+1
+	sta	1,x
+	lda	posX
+	sta	2,x
+	lda	rayDirX
+	sta	4,x
+	lda	rayDirX+1
+	sta	5,x
+	clc
+	lda	perpWallDist
+	adc	deltaDistYHalf
+	sta	6,x
+	lda	perpWallDist+1
+	adc	deltaDistYHalf+1
+	sta	7,x
+	rts
+
+
+saveSide0DataSpr:
+	lda	sideDistY
+	sta	0,x
+	lda	sideDistY+1
+	sta	1,x
+	lda	posY
+	sta	2,x
+	sec
+	lda	#0
+	sbc	rayDirY
+	sta	4,x
+	lda	#0
+	sbc	rayDirY+1
+	sta	5,x
+	lda	perpWallDist
+	sta	6,x
+	lda	perpWallDist+1
+	sta	7,x
+	rts
+
+saveSide1DataSpr:
+	lda	sideDistX
+	sta	0,x
+	lda	sideDistX+1
+	sta	1,x
+	lda	posX
+	sta	2,x
+	lda	rayDirX
+	sta	4,x
+	lda	rayDirX+1
+	sta	5,x
+	lda	perpWallDist
+	sta	6,x
+	lda	perpWallDist+1
+	sta	7,x
 	rts
 
 ;;; ----------------------------------------
@@ -861,151 +1061,109 @@ checkForDoor::
 	sec
 	lda	posY
 	sbc	dirY
-	tax
 	lda	posY+1
 	sbc	dirY+1
 	tay
-	sec
-	txa
-	sbc	dirYhalf
-	tya
-	sbc	dirYhalf+1
-	asl
-	asl
-	asl
-	asl
-	sta	tmp0
+	ldx	mul16,y
 
 	clc
 	lda	posX
 	adc	dirX
-	tax
 	lda	posX+1
 	adc	dirX+1
-	tay
-	clc
-	txa
-	adc	dirXhalf
-	tya
-	adc	dirXhalf+1
 
 	clc
-	adc	tmp0
+	adc	table256,x
 	sta	doorPtr
-	lda	#0
-	adc	#>world
-	sta	doorPtr+1
 	lda	(doorPtr)
 	rts
 ;;; ----------------------------------------
-;;; Move dirXhalf step backward
+;;; Move dirXHalf step backward
 moveBackward::
 	sec
 	lda	posX
-	sta	tmp1
-	sbc	dirX
-	sta	posX
+	sbc	dirX1_5
 	lda	posX+1
-	sta	tmp1+1
-	sbc	dirX+1
-	sta	posX+1
-	jsr	getWorld_XY
-	beq	.ok
-	cmp	#3<<2|2
-	beq	.ok
-	  lda	tmp1
-	  sta	posX
-	  lda	tmp1+1
-	  sta	posX+1
-	bra	.cont
-.ok
-	  SUBWABC dirXhalf,tmp1,posX
-.cont
+	sbc	dirX1_5+1
+	tax
+	lda	posY+1
+	jsr	getWorld_XY_reg
+	_IFCS
+	  SUBWABC dirX,posX,posX
+	_ENDIF
+
+	ldx	posX+1
 	clc
 	lda	posY
-	sta	tmp1
-	adc	dirY
+	adc	dirY1_5
 	lda	posY+1
-	sta	tmp1+1
-	adc	dirY+1
-	sta	posY+1
-	jsr	getWorld_XY
-	beq	.ok1
-	cmp	#3<<2|2
-	beq	.ok1
-	  lda	tmp1
-	  sta	posY
-	  lda	tmp1+1
-	  sta	posY+1
-	  rts
-.ok1
-	   ADDWABC dirYhalf,tmp1,posY
+	adc	dirY1_5+1
+	jsr	getWorld_XY_reg
+	_IFCS
+	  ADDWABC posY,dirYHalf,posY
+	_ENDIF
+	  lda	#$f
+	  trb posX
+	  trb posY
 	rts
 ;;; ----------------------------------------
-;;; Move dirXhalf step forward
+;;; Move dirXHalf step forward
 moveForward::
 	clc
 	lda 	posX
-	sta	tmp1
 	adc	dirX
-	sta	posX
 	lda	posX+1
-	sta	tmp1+1
 	adc	dirX+1
-	sta	posX+1
-	jsr	getWorld_XY
-	beq	.ok
-	cmp	#3<<2|2
-	beq	.ok
-	   lda	tmp1
-	   sta	posX
-	   lda	tmp1+1
-	   sta	posX+1
-	bra	.cont
-.ok
-	  ADDWABC tmp1,dirXhalf,posX
-.cont
+	tax
+	ldy	posY+1
+	jsr	getWorld_XY_reg1
+	_IFCS
+	  ADDWABC dirXHalf,posX,posX
+	_ENDIF
+
+	ldx	posX+1
 	sec
 	lda	posY
-	sta	tmp1
 	sbc	dirY
 	lda	posY+1
-	sta	tmp1+1
 	sbc	dirY+1
-	sta	posY+1
-	jsr	getWorld_XY
-	beq	.ok1
-	cmp	#3<<2|2
-	beq	.ok1
-
-	  lda	tmp1
-	  sta	posY
-	  lda	tmp1+1
-	  sta	posY+1
-	rts
-.ok1:
-	   SUBWABC dirYhalf,tmp1,posY
+	jsr	getWorld_XY_reg
+	_IFCS
+	  SUBWABC dirYHalf,posY,posY
+	_ENDIF
+	  lda	#$f
+	  trb posX
+	  trb posY
 	rts
 ;;; ----------------------------------------
 ;;; Calculate world-pointer and return element
 ;;;
+getWorld_XY_reg:		; A- y ,x -x
+	tay
+getWorld_XY_reg1
+	lda	mul16,y
+	clc
+	adc	table256,x	; => A+X
+	tay
+	lda	(world_ptr),y
+	beq	.exit
+	cmp	#3<<2|2
+	beq	.exit
+.hit
+	clc
+	rts
+.exit
+	lda	(sprite_ptr),y
+	bne	.hit
+	sec
+	rts
 
 getWorld_XY::
-	lda	posY+1		; posY < 16 !!
-	asl
-	asl
-	asl
-	asl
-//->	clc
-//->	adc	#<world		; aligned on 256!
-
-//->	clc
+	ldx	posY+1		; posY < 16 !!
+	lda	mul16,x
+	clc
 	adc	posX+1
 	tay
-	lda	#0
-	adc	#>world
-	stz	world_ptr
-	sta	world_ptr+1
 	lda	(world_ptr),y
 	rts
 
@@ -1033,10 +1191,17 @@ getDirPlane::
 
 	cmp	#$80
 	ror
-	sta	dirXhalf+1
+	sta	dirXHalf+1
 	tya
 	ror
-	sta	dirXhalf
+	sta	dirXHalf
+
+	clc
+	adc	dirX
+	sta	dirX1_5
+	lda	dirXHalf+1
+	adc	dirX+1
+	sta	dirX1_5+1
 
 	lda	sintab_lo,x
 	sta	dirY
@@ -1055,10 +1220,18 @@ getDirPlane::
 	lda	dirY+1
 	cmp	#$80
 	ror
-	sta	dirYhalf+1
+	sta	dirYHalf+1
+	tax
 	lda	dirY
 	ror
-	sta	dirYhalf
+	sta	dirYHalf
+
+	clc
+	adc	dirY
+	sta	dirY1_5
+	txa
+	adc	dirY+1
+	sta	dirY1_5+1
 	rts
 ;;; ----------------------------------------
 ;;; Multiply A:Y by 0.781 (FOV)
@@ -1134,6 +1307,27 @@ line_ysize
 line_color:
 	dc.b $01,$23,$45,$67,$89,$AB,$CD,$EF
 
+;;; ----------------------------------------
+;;;
+spriteSCB:
+	dc.b SPRCTL0_16_COL|SPRCTL0_NORMAL
+	dc.b SPRCTL1_DEPTH_SIZE_RELOAD|SPRCTL1_LITERAL
+	dc.b 0
+	dc.w 0
+sprite_data:
+	dc.w 0
+sprite_x
+	dc.w 0
+	dc.w 51
+ IF HALF_REZ = 1
+	dc.w $200
+ ELSE
+	dc.w $100
+ ENDIF
+sprite_ysize
+	dc.w $100
+	dc.b $01,$23,$45,$67,$89,$AB,$CD,$EF
+
 
 ;;; ----------------------------------------
 ;;; horizontal interrupt for the sky
@@ -1207,7 +1401,7 @@ skyFloorSCB2a
 	dc.w cls_data
 	dc.w 1,1
 	dc.w (160-MAX_X_REZ-4)*$80,100*$100
-	dc.b $01
+	dc.b $02
 
 skyFloorSCB3
 	dc.b SPRCTL0_16_COL
@@ -1224,7 +1418,7 @@ skyFloorSCB3a
 	dc.w cls_data
 	dc.w (160+MAX_X_REZ)/2+1,1
 	dc.w (160-MAX_X_REZ-4)*$80,100*$100
-	dc.b $01
+	dc.b $02
  ENDIF
 
 cls_data
@@ -1242,7 +1436,8 @@ cls_data
 	include <includes/draw_spr.inc>
 pal
 ;;;          2               6               A
- DP 000,CBC,989,656,424,9B8,8A7,796,685,DEE,ABB,788,555,000,222,FFF
+ DP 000,222,555,666,888,999,00F,0F0,F00,880,AA0,CC0,FF0,FF8,FFC,FFF
+
 
 ;;; ========================================
 ;;; local includes
@@ -1257,24 +1452,49 @@ SPR_SIZE	equ 66
 	include "wall1.inc"
 	include "door.inc"
 	include "frame.inc"
+	include "smiley.inc"
+	include "smileyl.inc"
+	include "smileyr.inc"
+	include "smileyb.inc"
 
 ;;; ----------------------------------------
 
+
 textures_lolo:
-	dc.b	 <wall1_lo,<phobyx_lo, <mandel_lo,<door_lo,<frame_lo
+	dc.b	<wall1_lo,<phobyx_lo,<mandel_lo,<door_lo,<frame_lo
+	dc.b	<smiley_lo
 textures_lohi:
-	dc.b	 >wall1_lo,>phobyx_lo, >mandel_lo,>door_lo,>frame_lo
-
+	dc.b	>wall1_lo,>phobyx_lo,>mandel_lo,>door_lo,>frame_lo
+	dc.b	>smiley_lo
 textures_hilo:
-	dc.b	<wall1_hi,<phobyx_hi, <mandel_hi,<door_hi,<frame_hi
+	dc.b	<wall1_hi,<phobyx_hi,<mandel_hi,<door_hi,<frame_hi
+	dc.b	<smiley_hi
 textures_hihi:
-	dc.b	>wall1_hi,>phobyx_hi, >mandel_hi,>door_hi,>frame_hi
+	dc.b	>wall1_hi,>phobyx_hi,>mandel_hi,>door_hi,>frame_hi
+	dc.b	>smiley_hi
 
-	align 256
-	include "world.inc"
+sprites_lolo:
+	dc.b	<smiley_lo,<smileyl_lo,<smileyr_lo,<smileyb_lo
+sprites_lohi:
+	dc.b	>smiley_lo,>smileyl_lo,>smileyr_lo,>smileyb_lo
+sprites_hilo:
+	dc.b	<smiley_hi,<smileyl_hi,<smileyr_hi,<smileyb_hi
+sprites_hihi:
+	dc.b	>smiley_hi,>smileyl_hi,>smileyr_hi,>smileyb_hi
 
 	;; should be last!
 	include <includes/font2.hlp>
+
+	align 256
+s	set 0
+table256:
+	REPT	256
+	dc.b s
+s	set s+1
+	ENDR
+
+	include "world.inc"
+
 end:
 	echo "END:%H end"
 	echo "world:%H world"
