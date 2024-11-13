@@ -5,7 +5,7 @@ DEMO=raycast
 
 $(DEMO).o: $(DEMO).asm world.inc sintab.inc deltatab.inc mandel.inc phobyx.inc\
 	wall1.inc door.inc frame.inc smiley.inc smileyl.inc smileyr.inc\
-	smileyb.inc
+	smileyb.inc monster.inc monsterb.inc
 
 lnx: $(DEMO).lnx
 
@@ -27,6 +27,12 @@ smileyr.inc: spr/smiley_right000000.spr
 	touch $@
 smileyb.inc: spr/smiley_back000000.spr
 	touch $@
+monster.inc: spr/monster000000.spr
+	touch $@
+monsterb.inc: spr/monster_back000000.spr
+	touch $@
+
+
 
 %.o: %.asm
 	@lyxass  $(ASFLAGS) $<
@@ -61,10 +67,16 @@ spr/frame000000.spr: frame.pcx
 	sprpck -u -t3 -i032032 -S001032 -r032001 -a000016 $< spr/$(basename $<)
 
 spr/smiley000000.spr: smiley.pcx
-	sprpck -u -t3 -i032032 -S001032 -r032001 -a000016 $< spr/$(basename $<)
+	sprpck -u -t3 -i032032 -S001032 -o004000 -r024001 -a000016 $< spr/$(basename $<)
 spr/smiley_left000000.spr: smiley_left.pcx
-	sprpck -u -t3 -i032032 -S001032 -r032001 -a000016 $< spr/$(basename $<)
+	sprpck -u -t3 -i032032 -S001032 -o004000 -r024001 -a000016 $< spr/$(basename $<)
 spr/smiley_right000000.spr: smiley_right.pcx
-	sprpck -u -t3 -i032032 -S001032 -r032001 -a000016 $< spr/$(basename $<)
+	sprpck -u -t3 -i032032 -S001032 -o004000 -r024001 -a000016 $< spr/$(basename $<)
 spr/smiley_back000000.spr: smiley_back.pcx
-	sprpck -u -t3 -i032032 -S001032 -r032001 -a000016 $< spr/$(basename $<)
+	sprpck -u -t3 -i032032 -S001032 -o004000 -r024001 -a000016 $< spr/$(basename $<)
+
+spr/monster000000.spr: monster.pcx
+	sprpck -u -t3 -i032032 -S001032 -o004000 -r024001 -a000016 $< spr/$(basename $<)
+
+spr/monster_back000000.spr: monster_back.pcx
+	sprpck -u -t3 -i032032 -S001032 -o004000 -r024001 -a000016 $< spr/$(basename $<)

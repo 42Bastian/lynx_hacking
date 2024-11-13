@@ -1,5 +1,9 @@
 ;-*-asm-*-
 smileyb:
+ ibytes "spr/smiley_back000000.spr"
+ ibytes "spr/smiley_back000001.spr"
+ ibytes "spr/smiley_back000002.spr"
+ ibytes "spr/smiley_back000003.spr"
  ibytes "spr/smiley_back000004.spr"
  ibytes "spr/smiley_back000005.spr"
  ibytes "spr/smiley_back000006.spr"
@@ -20,10 +24,6 @@ smileyb:
  ibytes "spr/smiley_back000021.spr"
  ibytes "spr/smiley_back000022.spr"
  ibytes "spr/smiley_back000023.spr"
- ibytes "spr/smiley_back000024.spr"
- ibytes "spr/smiley_back000025.spr"
- ibytes "spr/smiley_back000026.spr"
- ibytes "spr/smiley_back000027.spr"
 
 ma	set smileyb
 smileyb_lo:
