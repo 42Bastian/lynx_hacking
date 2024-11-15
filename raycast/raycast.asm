@@ -4,14 +4,15 @@ START_ANGLE	equ 64
 
 MAX_X_REZ	equ 120
 
-HALF_REZ	equ 0
+HALF_REZ	equ 1
+
+TRIPPLE		equ 1
+
+SET_FRAMERATE	equ 60
 
 Baudrate	set 62500
 
 BlockSize	equ 1024
-
-IRQ_SWITCHBUF_USR set 1
-
 	include <includes/hardware.inc>
 	include <macros/mikey.mac>
 	include <macros/suzy.mac>
@@ -19,10 +20,11 @@ IRQ_SWITCHBUF_USR set 1
 
 	;; fixed address stuff
 
-screen1		equ $FFF0-SCREEN.LEN
-screen0		equ screen1-SCREEN.LEN
+screen0		equ $FFF0-SCREEN.LEN
+screen1		equ screen0-SCREEN.LEN
+screen2		equ screen1-SCREEN.LEN
 
-START_MEM	EQU $b000
+START_MEM	EQU screen2-1024
 
 	include <macros/help.mac>
 	include <macros/if_while.mac>
@@ -97,12 +99,9 @@ textureHi	ds 2
 
 sprite_ypos	ds 1
 slhit		ds 1
-spr_hit		ds 1
-spr_y		ds 1
 spriteLo	ds 2
 spriteHi	ds 2
-spr_wallside	ds 1
-spr_draw_flag	ds 1
+
 tmp0		ds 2
 tmp1		ds 2
 
@@ -115,7 +114,7 @@ rayDirXY	ds 2
 perpDoorDist	ds 2
 
 
-
+hbl_time	ds 2		; 6289Hz at 60Hz VBL, 5300Hz at 50Hz
 spr_first_tx	ds 1
 
 spr_sp		ds 1
@@ -125,6 +124,8 @@ doorInc		ds 1
 doorPos		ds 1
 doorPtr		ds 2
 mul16		ds 16
+
+ScreenBase1	ds 2
  END_ZP
 	echo "hit       :%Hhit"
 	echo "stepX     :%HstepX"
@@ -183,7 +184,7 @@ Start::
 
 	INITMIKEY
 	INITSUZY
-	FRAMERATE 60
+	FRAMERATE SET_FRAMERATE
 
 	lda	_SPRSYS
 	ora	#SIGNED_MATH
@@ -201,7 +202,13 @@ Start::
 
 	cli			; don`t forget this !!!!
 
-	SCRBASE screen0,screen1
+	MOVEI	screen0,ScreenBase
+	MOVEI	screen1,ScreenBase1
+ IF TRIPPLE = 1
+	MOVEI	screen2,ScreenBase2
+ ENDIF
+	MOVE	ScreenBase,$fd94
+	MOVE 	ScreenBase1,VIDBAS
 
 	SETRGB pal		; set color
 
@@ -236,12 +243,55 @@ Start::
 ; main-loop
 ;
 .loop
-	SWITCHBUF
-	stz	vbl_count
+	;; get current display
+	ldx	ScreenBase
+	ldy	ScreenBase+1
+
+	;; make draw buffer new display
+	;; Lynx will switch the next VBL!
+	lda	ScreenBase1
+	sta	$fd94
+	sta	ScreenBase
+	lda	ScreenBase1+1
+	sta	$fd95
+	sta	ScreenBase+1
+ IF TRIPPLE = 1
+	lda	ScreenBase2
+	sta	ScreenBase1
+	sta	VIDBAS
+	lda	ScreenBase2+1
+	sta	ScreenBase1+1
+	sta	VIDBAS+1
+	stx	ScreenBase2
+	sty	ScreenBase2+1
+ ELSE
+	;; double buffering must wait before Mikey did switch
+	;; before continue to draw
+	lda	vbl_count
+.vbl
+	cmp	vbl_count
+	beq	.vbl
+
+	stx	ScreenBase1
+	stx	VIDBAS
+	sty	ScreenBase1+1
+	sty	VIDBAS+1
+ ENDIF
+	;; Save rendering time on stack
+	sei
+	lda	hbl_time+1
+	pha
+	lda	hbl_time
+	pha
+	stz	hbl_time
+	cli
+	stz	hbl_time+1
 
 	LDAY skyFloorSCB
 	jsr DrawSprite
 
+	;; always draw from 0 to MAX_X_REZ, if less than 160
+	;; center the draw window
  IF MAX_X_REZ < 160
 	lda	#-(160-MAX_X_REZ)/2
 	sta	HOFF
@@ -463,9 +513,6 @@ Start::
 
 	lda	#$ff
 	sta	slhit
-	stz	spr_wallside
-	stz	spr_draw_flag
-
 	stz	spr_sp
 
 	SKIP2
@@ -479,19 +526,26 @@ Start::
 	cmp	#3<<2|3
 	_IFEQ
 .door
-	  CMPWS sideDist,perpDoorDist
-	  bcs	.rescan
-	  ldx	#sideDist
+	;; CMPWS sideDist,perpDoorDist
+	lda	sideDist+1
+	cmp	perpDoorDist+1
+	bmi	.rescan
+	bne	.draw_door
+	lda	sideDist
+	cmp	perpDoorDist
+	bcc	.rescan
+	beq	.rescan
+.draw_door
 	  jsr	door_textureX
+
 	_ELSE
 	  jsr	wall_sizeTextureX
 	_ENDIF
 
-	lda	hit		; wall element
-	tax
+	ldx	hit		; wall element
 	bmi	.frame
 
-	cmp	#3<<2|3
+	cpx	#3<<2|3
 	bne	.no_door	; not a moving door
 
 	cpy	doorPos
@@ -502,18 +556,19 @@ Start::
 	sbc	doorPos
 	and	#31
 	tay
-	txa
 	bra	.no_door
 
 .frame
+	txa
 	and	#3
 	cmp	wallside
 	_IFEQ
-	  lda	#4<<2		; frame
+	  ldx	#4<<2		; frame
 	_ELSE
-	  lda	#1<<2		; normal wall
+	  ldx	#1<<2		; normal wall
 	_ENDIF
 .no_door
+	txa
 	lsr
 	lsr			; remove flags/color
 
@@ -533,15 +588,6 @@ Start::
 	  txa
 	_ENDIF
 
-	cpx	#3		; door?
-	beq	.no_mirror
-
-	bbs0	wallside,.no_mirror
-	tya
-	eor	#31
-	tay
-.no_mirror
-
 	lda	(textureLo),y
 	sta	line_data
 	lda	(textureHi),y
@@ -552,7 +598,7 @@ Start::
 	_ENDIF
 	LDAY	lineSCB
 
-	WAITSUZY		; wait for divide to finish
+//->	WAITSUZY		; wait for divide to finish (not needed here!)
 
 	ldx	MATHE_D+1
 	stx	line_ysize
@@ -560,11 +606,16 @@ Start::
 	stx	line_ysize+1
 
 	jsr	DrawSprite
+;;;
+;;; Draw sprites
+;;;
 .next_spr
 	ldx	spr_sp
 	beq	.no_sprite
 	dex
 	dec	spr_sp
+
+	;; CMPWS sideDistSprHi,perpSpriteDist
 	lda	sideDistSprHi,x
 	cmp	perpSpriteDistHi,x
 	bmi	.next_spr
@@ -574,29 +625,23 @@ Start::
 	bcc	.next_spr
 	beq	.next_spr
 .draw_spr
+	  jsr	sprite_textureX
+
 	  lda	sprites,x
-	  and #$7f
+	  and	#$7f		; remove flag for sprite 0
 	  cmp	slhit
 	  _IFNE
 	    sta	slhit
-	    tay
-	    lda	sprites_lolo,y
+	    tax
+	    lda	sprites_lolo,x
 	    sta	spriteLo
-	    lda	sprites_lohi,y
+	    lda	sprites_lohi,x
 	    sta	spriteLo+1
-	    lda	sprites_hilo,y
+	    lda	sprites_hilo,x
 	    sta	spriteHi
-	    lda	sprites_hihi,y
+	    lda	sprites_hihi,x
 	    sta	spriteHi+1
 	  _ENDIF
-
-	  jsr	sprite_textureX
-	bbr0	wallside,.no_mirror1
-	tya
-	eor	#31
-	tay
-.no_mirror1
-
 	  lda	(spriteLo),y
 	  sta	sprite_data
 	  lda	(spriteHi),y
@@ -604,11 +649,13 @@ Start::
 	  ora	sprite_data
 	  beq	.next_spr
 
-	  WAITSUZY
+//->	  WAITSUZY		; wait for divide to finish (not needed here!)
+
 	  lda	MATHE_D+1
 	  sta	sprite_ysize
 	  lda	MATHE_D+2
 	  sta	sprite_ysize+1
+
 	  LDAY	spriteSCB
 	  jsr	DrawSprite
 	bra	.next_spr
@@ -625,17 +672,17 @@ Start::
 	sta	sprite_x
 	jmp	.xloop
 .done
- IF 0 = 1
+ IF 1 = 1
 	;; check how many cycles are left before next VBL
 	;; => time for game logic
-//->	ldy	#1
-	ldx	#140
+	ldy	#1
+	ldx	#0
 .eat_cycles
 	NOP8
 	dex
 	bne	.eat_cycles
-//->	dey
-//->	bne	.eat_cycles
+	dey
+	bne	.eat_cycles
  ENDIF
 
 	lda	doorInc
@@ -658,13 +705,13 @@ Start::
 	    _ENDIF
 	  _ENDIF
 	_ENDIF
-	lda	vbl_count
-	pha
 
 	stz	VOFF
  IF MAX_X_REZ < 160
 	stz	HOFF
  ENDIF
+	;; calculate FPS
+
 	SET_XY 2,2
 	PRINT info
 
@@ -686,24 +733,39 @@ Start::
 
 	SET_XY 2,51
 	pla
+	sta	MATHE_B
+	pla
+	sta	MATHE_B+1
+	stz	MATHE_A
+	lda	#<(SET_FRAMERATE*105)
+	sta	MATHE_A+2
+	lda	#>(SET_FRAMERATE*105)
+	sta	MATHE_A+3
+	WAITSUZY
+	lda	MATHE_D+2
+
 	jsr PrintDecA
 
-	lda	#$3
-	sta	FG_Color
-
-	SET_XY 143,1
-	lda	dirX+1
-	jsr PrintHex
-	lda	dirX
-	jsr PrintHex
-
-	SET_XY 143,8
-	lda	dirY+1
-	jsr PrintHex
-	lda	dirY
-	jsr PrintHex
-	lda	#$F
-	sta	FG_Color
+//->	lda	#$8
+//->	sta	FG_Color
+//->	SET_XY 135,1
+//->	pla
+//->	jsr PrintHex
+//->	pla
+//->	jsr PrintHex
+//->	SET_XY 143,1
+//->	lda	dirX+1
+//->	jsr PrintHex
+//->	lda	dirX
+//->	jsr PrintHex
+//->
+//->	SET_XY 143,8
+//->	lda	dirY+1
+//->	jsr PrintHex
+//->	lda	dirY
+//->	jsr PrintHex
+//->	lda	#$F
+//->	sta	FG_Color
 
 
 .0
@@ -716,9 +778,9 @@ Start::
 
 	and #_FLIP	; Pause+Opt2 => Flip
 	cmp #_FLIP
-	_IFEQ
-	  FLIP
-	_ENDIF
+//->	_IFEQ
+//->	  FLIP
+//->	_ENDIF
 	lda	Button
 	bit	#_FIREB
 	_IFNE
@@ -784,7 +846,6 @@ Start::
 
 	jmp .newDirLoop
 
-
 ;;; calc
 sprite_textureX::
 	lda	perpSpriteDistLo,x
@@ -799,45 +860,48 @@ sprite_textureX::
 	sta	MATHE_E+1
 	NOP8
 	lda	MATHE_A+1
-	asl
-	clc
-	adc	posXYSpr,x
 
 	stz	MATHE_A
 	ldy	#<(102*8)
 	sty	MATHE_A+2
 	ldy	#>(102*8)
-	sty	MATHE_A+3	; start divide (*4 => /64)
+	sty	MATHE_A+3	; start divide (*8 => /32)
 
+	asl
+	clc
+	adc	posXYSpr,x
 	lsr
 	lsr
 	lsr
+	bbr0	wallside,.no_mirror1
+	eor	#31
+.no_mirror1
 	tay			; texX
 	rts
 
 door_textureX::
-	lda	5,x
+	lda	perpDoorDist
 	sta	MATHE_B
 	sta	MATHE_C
-	lda	6,x
+	lda	perpDoorDist+1
 	sta	MATHE_B+1
 	sta	MATHE_C+1
-	lda	3,x
+	lda	rayDirXY
 	sta	MATHE_E
-	lda	4,x
+	lda	rayDirXY+1
 	sta	MATHE_E+1
 	NOP8
 	lda	MATHE_A+1
-	asl
-	clc
-	adc	2,x
 
 	stz	MATHE_A
 	ldx	#<(102*8)
 	stx	MATHE_A+2
 	ldx	#>(102*8)
-	stx	MATHE_A+3	; start divide (*4 => /64)
+	stx	MATHE_A+3	; start divide (*8 => /32)
 
+	asl
+	clc
+	adc	posXY
 	lsr
 	lsr
 	lsr
@@ -884,10 +948,14 @@ wall_sizeTextureX:
 	lsr
 	lsr
 	lsr
+
+	bbs0	wallside,.no_mirror
+	eor	#31
+.no_mirror
 	tay			; texX
 	rts
 
-info:	dc.b "X:",13,13,"Y:",13,13,"A:",13,13,"VBL:",0
+info:	dc.b "X:",13,13,"Y:",13,13,"A:",13,13,"FPS:",0
 ;;; ----------------------------------------
 ;;->        if (sideDistX < sideDistY) {
 ;;->          perpWallDist = sideDistX;
@@ -1372,6 +1440,11 @@ sprite_ysize
 ;;; horizontal interrupt for the sky
 
 HBL::
+	inc	hbl_time
+	_IFEQ
+	inc	hbl_time+1
+	_ENDIF
+
 	dec	hbl_count
 	_IFMI
 	  _IFEQ floor
@@ -1398,7 +1471,6 @@ HBL::
 ;;; ----------------------------------------
 VBL::
 //->	READKEY
-	IRQ_SWITCHBUF
 	inc	vbl_count
 	lda	#3
 	sta	hbl_count
@@ -1463,16 +1535,27 @@ skyFloorSCB3a
 cls_data
 	dc.b 2,$10,0
 
+DrawSprite::
+	sta SCBNEXT
+	sty SCBNEXT+1
+	lda #1
+	STA SPRGO
+	STZ SDONEACK
+.WAIT	STZ CPUSLEEP
+	bit SPRSYS
+	bne .WAIT
+	STZ SDONEACK
+	rts
+
 ;;; ========================================
 ;;; BLL includes
 
 	include <includes/irq.inc>
-	include <includes/debug.inc>
+//->	include <includes/debug.inc>
 	include <includes/serial.inc>
 
 	include <includes/hexdez.inc>
 	include <includes/font.inc>
-	include <includes/draw_spr.inc>
 pal
 ;;;          2               6               A
  DP 000,222,555,666,888,999,00F,0F0,F00,880,AA0,CC0,FF0,FF8,FFC,FFF
@@ -1554,3 +1637,4 @@ end:
 	echo "NEXT_MEM: %H NEXT_MEM"
 	echo "screen0: %Hscreen0"
 	echo "screen1: %Hscreen1"
+	echo "screen2: %Hscreen2"
