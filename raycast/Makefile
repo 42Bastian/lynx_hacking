@@ -5,7 +5,7 @@ DEMO=raycast
 
 $(DEMO).o: $(DEMO).asm world.inc sintab.inc deltatab.inc mandel.inc phobyx.inc\
 	wall1.inc door.inc frame.inc smiley.inc smileyl.inc smileyr.inc\
-	smileyb.inc monster.inc monsterb.inc
+	smileyb.inc monster.inc monsterb.inc scr_frame_left.spr
 
 lnx: $(DEMO).lnx
 
@@ -50,6 +50,9 @@ clean:
 
 real-clean:
 	@rm -f *.o *.lnx
+
+scr_frame_left.spr: scr_frame_left.pcx
+	sprpck -c -t3 -s2 $<
 
 spr/mandel000000.spr: mandel.sps
 	sprpck -u -t2 -i032032 -S001032 -r032001 -a000016 $< spr/$(basename $<)

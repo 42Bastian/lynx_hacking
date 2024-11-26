@@ -1,18 +1,29 @@
-START_X		equ $360
-START_Y		equ $da0
-START_ANGLE	equ 64
+//->START_X		equ $9f4
+//->START_Y		equ $7ed
+//->START_ANGLE	equ 144
 
-MAX_X_REZ	equ 120
+START_X		equ $e15
+START_Y		equ $661
+START_ANGLE	equ 128
+
+MAX_X_REZ	equ 122
 
 HALF_REZ	equ 1
 
 TRIPPLE		equ 1
+
+EAT_CYCLES	equ 0		; simulate game play logic
+
+MAX_SPRITES	equ 10
 
 SET_FRAMERATE	equ 60
 
 Baudrate	set 62500
 
 BlockSize	equ 1024
+
+NEW_IRQ_HANDLER	equ 1
+
 	include <includes/hardware.inc>
 	include <macros/mikey.mac>
 	include <macros/suzy.mac>
@@ -20,9 +31,9 @@ BlockSize	equ 1024
 
 	;; fixed address stuff
 
-screen0		equ $FFF0-SCREEN.LEN
-screen1		equ screen0-SCREEN.LEN
-screen2		equ screen1-SCREEN.LEN
+screen0		equ $FF00-8192
+screen1		equ screen0-8192
+screen2		equ screen1-8192
 
 START_MEM	EQU screen2-1024
 
@@ -101,11 +112,13 @@ sprite_ypos	ds 1
 slhit		ds 1
 spriteLo	ds 2
 spriteHi	ds 2
-
+spr_ly		ds 1
 tmp0		ds 2
 tmp1		ds 2
 
+ly		ds 1
 step		ds 1
+moving		ds 1
 
 	;; Half step variables for frames
 sideDist	ds 2
@@ -113,12 +126,7 @@ posXY		ds 1
 rayDirXY	ds 2
 perpDoorDist	ds 2
 
-
-hbl_time	ds 2		; 6289Hz at 60Hz VBL, 5300Hz at 50Hz
-spr_first_tx	ds 1
-
 spr_sp		ds 1
-
 	;; door variabls
 doorInc		ds 1
 doorPos		ds 1
@@ -143,20 +151,18 @@ ScreenBase1	ds 2
 	echo "perpWallD.:%H perpWallDist"
 	echo "--------------"
 	echo "NEXT_ZP: %H NEXT_ZP"
-; main-memory variables
-;
 
  BEGIN_MEM
 irq_vectors	ds 16
 
-sprites		ds 10
-sideDistSprLo	ds 10
-sideDistSprHi	ds 10
-posXYSpr	ds 10
-rayDirXYSprLo	ds 10
-rayDirXYSprHi	ds 10
-perpSpriteDistLo ds 10
-perpSpriteDistHi ds 10
+sprites		ds MAX_SPRITES
+sideDistSprLo	ds MAX_SPRITES
+sideDistSprHi	ds MAX_SPRITES
+posXYSpr	ds MAX_SPRITES
+rayDirXYSprLo	ds MAX_SPRITES
+rayDirXYSprHi	ds MAX_SPRITES
+perpSpriteDistLo ds MAX_SPRITES
+perpSpriteDistHi ds MAX_SPRITES
 
  END_MEM
 ;
@@ -178,6 +184,11 @@ size_of_loader:
  ENDIF
 
 Start::
+	lda	#$c1
+	sta	0
+	lda	#1
+	bit	0
+	nop
 	START_UP
 	CLEAR_MEM
 	CLEAR_ZP +STACK
@@ -194,13 +205,9 @@ Start::
 	INITIRQ irq_vectors
 //->	jsr InitComLynx
 
+
 	INITFONT LITTLEFNT,0,15
 	SET_MINMAX 2,2,160,102
-
-	SETIRQ 0,HBL
-	SETIRQ 2,VBL
-
-	cli			; don`t forget this !!!!
 
 	MOVEI	screen0,ScreenBase
 	MOVEI	screen1,ScreenBase1
@@ -210,6 +217,16 @@ Start::
 	MOVE	ScreenBase,$fd94
 	MOVE 	ScreenBase1,VIDBAS
 
+	lda #249
+	sta $fd00+1*4
+	lda #%00011001	; 500kHz
+	sta $fd01+1*4
+	lda #%00011111	; link with Timer 1 => 0.5ms counter
+	sta $fd01+3*4
+
+	SETIRQ 0,HBL
+	SETIRQ 2,VBL
+	cli
 	SETRGB pal		; set color
 
 	MOVEI 	START_X,posX
@@ -217,8 +234,8 @@ Start::
 	lda	#START_ANGLE
 	sta	angle
 
-	lda	#0
 	ldx	#0
+	txa
 	clc
 .initmul16
 	sta	mul16,x
@@ -232,10 +249,6 @@ Start::
 	lda	#>spritePos
 	sta	sprite_ptr+1
 
-
-	stz	doorInc
-	stz	doorPos
-	stz	step
 .newDirLoop:
 	jsr	getDirPlane
 
@@ -249,12 +262,14 @@ Start::
 
 	;; make draw buffer new display
 	;; Lynx will switch the next VBL!
+
 	lda	ScreenBase1
-	sta	$fd94
 	sta	ScreenBase
+	sta	$fd94
 	lda	ScreenBase1+1
-	sta	$fd95
 	sta	ScreenBase+1
+	sta	$fd95
+
  IF TRIPPLE = 1
 	lda	ScreenBase2
 	sta	ScreenBase1
@@ -267,6 +282,7 @@ Start::
  ELSE
 	;; double buffering must wait before Mikey did switch
 	;; before continue to draw
+
 	lda	vbl_count
 .vbl
 	cmp	vbl_count
@@ -277,15 +293,14 @@ Start::
 	sty	ScreenBase1+1
 	sty	VIDBAS+1
  ENDIF
-	;; Save rendering time on stack
-	sei
-	lda	hbl_time+1
+	lda	$fd02+3*4
+	eor	#$ff
+	lsr
 	pha
-	lda	hbl_time
-	pha
-	stz	hbl_time
-	cli
-	stz	hbl_time+1
+
+	lda	#$ff
+	sta 	$fd02+3*4
+	stz	vbl_count
 
 	LDAY skyFloorSCB
 	jsr DrawSprite
@@ -302,6 +317,7 @@ Start::
 //->	_IFNE
 //->	  dec	step
 //->	_ENDIF
+//->	lsr
 //->	sta	VOFF
 
 ;;; rayDirX0 = (dirX+planeX)/2 * FP
@@ -355,13 +371,14 @@ Start::
 	sta	rayDirYdelta
 	sty	rayDirYdelta+1
 	stx	rayDirYdelta+2
-	stz	spr_first_tx
+
  IF HALF_REZ = 1
 	lda	#MAX_X_REZ/2
  ELSE
 	lda	#MAX_X_REZ
  ENDIF
 	sta	lhit		; preset last texture
+	sta	ly
 	jmp	.intoloop
 .xloop
 	lda	posX
@@ -466,7 +483,7 @@ Start::
 
 	lda	#3
 	sta	wallside1
-	lda	#16
+	lda	#-16
 	ldy	sideDistY
 
 	bbr7	rayDirY+1,.rayDirYPlus
@@ -480,7 +497,7 @@ Start::
 	eor	#$ff		; 1's complement to avoid carry
 	tay
 
-	lda	#-16
+	lda	#16
 	dec	wallside1
 .rayDirYPlus
 	sta	stepY
@@ -509,12 +526,14 @@ Start::
 	ror
 	sta	deltaDistYHalf
 
-	jsr	getWorld_XY
+	ldx	posY+1
+	lda	mul16,x
+	ora	posX+1
+	tay
 
 	lda	#$ff
 	sta	slhit
 	stz	spr_sp
-
 	SKIP2
 .rescan:
 	ldy	y_save
@@ -526,18 +545,14 @@ Start::
 	cmp	#3<<2|3
 	_IFEQ
 .door
-	;; CMPWS sideDist,perpDoorDist
-	lda	sideDist+1
-	cmp	perpDoorDist+1
-	bmi	.rescan
-	bne	.draw_door
-	lda	sideDist
-	cmp	perpDoorDist
-	bcc	.rescan
-	beq	.rescan
-.draw_door
-	  jsr	door_textureX
+	;; CMPW sideDist,perpDoorDist
+	  lda	perpDoorDist
+	  cmp	sideDist
+	  lda	perpDoorDist+1
+	  sbc	sideDist+1
+	  bcs	.rescan
 
+	  jsr	door_textureX
 	_ELSE
 	  jsr	wall_sizeTextureX
 	_ENDIF
@@ -586,19 +601,21 @@ Start::
 	  lda	textures_hihi,x
 	  sta	textureHi+1
 	  txa
+	  lda	#$ff
+	  sta	ly
 	_ENDIF
 
-	lda	(textureLo),y
-	sta	line_data
-	lda	(textureHi),y
-	sta	line_data+1
-	ora	line_data
-	_IFEQ
-	 jmp	.rescan
+	cpy	ly
+	_IFNE
+	  lda	(textureLo),y
+	  sta	line_data
+	  lda	(textureHi),y
+	  sta	line_data+1
 	_ENDIF
+	sty	ly
 	LDAY	lineSCB
 
-//->	WAITSUZY		; wait for divide to finish (not needed here!)
+	WAITSUZY		; wait for divide to finish (not needed here!)
 
 	ldx	MATHE_D+1
 	stx	line_ysize
@@ -612,26 +629,22 @@ Start::
 .next_spr
 	ldx	spr_sp
 	beq	.no_sprite
-	dex
-	dec	spr_sp
+	  dec	spr_sp
 
-	;; CMPWS sideDistSprHi,perpSpriteDist
-	lda	sideDistSprHi,x
-	cmp	perpSpriteDistHi,x
-	bmi	.next_spr
-	bne	.draw_spr
-	lda	sideDistSprLo,x
-	cmp	perpSpriteDistLo,x
-	bcc	.next_spr
-	beq	.next_spr
-.draw_spr
+	;; CMPW sideDistSprHi,perpSpriteDist
+	  lda	perpSpriteDistLo-1,x
+	  cmp	sideDistSprLo-1,x
+	  lda	perpSpriteDistHi-1,x
+	  sbc	sideDistSprHi-1,x
+	  bcs	.next_spr
+
 	  jsr	sprite_textureX
 
-	  lda	sprites,x
-	  and	#$7f		; remove flag for sprite 0
+	  lda	sprites-1,x
 	  cmp	slhit
 	  _IFNE
 	    sta	slhit
+	    and	#$7f		; remove flag for sprite 0
 	    tax
 	    lda	sprites_lolo,x
 	    sta	spriteLo
@@ -641,13 +654,17 @@ Start::
 	    sta	spriteHi
 	    lda	sprites_hihi,x
 	    sta	spriteHi+1
+	    sta	spr_ly
 	  _ENDIF
-	  lda	(spriteLo),y
-	  sta	sprite_data
-	  lda	(spriteHi),y
-	  sta	sprite_data+1
-	  ora	sprite_data
-	  beq	.next_spr
+	  cpy	spr_ly
+	  _IFNE
+	    lda	(spriteLo),y
+	    sta	sprite_data
+	    lda	(spriteHi),y
+	    sta	sprite_data+1
+	    ora	sprite_data
+	    beq	.next_spr
+	_ENDIF
 
 //->	  WAITSUZY		; wait for divide to finish (not needed here!)
 
@@ -672,7 +689,7 @@ Start::
 	sta	sprite_x
 	jmp	.xloop
 .done
- IF 1 = 1
+ IF EAT_CYCLES = 1
 	;; check how many cycles are left before next VBL
 	;; => time for game logic
 	ldy	#1
@@ -712,8 +729,8 @@ Start::
  ENDIF
 	;; calculate FPS
 
-	SET_XY 2,2
-	PRINT info
+//->	SET_XY 2,2
+//->	PRINT info
 
 	SET_XY 2,9
 	lda posX+1
@@ -734,12 +751,12 @@ Start::
 	SET_XY 2,51
 	pla
 	sta	MATHE_B
-	pla
-	sta	MATHE_B+1
 	stz	MATHE_A
-	lda	#<(SET_FRAMERATE*105)
+	clc
+	adc	#<999
 	sta	MATHE_A+2
-	lda	#>(SET_FRAMERATE*105)
+	lda	#0
+	adc	#>999
 	sta	MATHE_A+3
 	WAITSUZY
 	lda	MATHE_D+2
@@ -832,6 +849,7 @@ Start::
 	  _ENDIF
 	  sta angle
 	_ELSE
+	  stz	moving
 	  bit #JOY_UP
 	  _IFNE
 	    jsr moveForward
@@ -839,8 +857,10 @@ Start::
 	    jsr moveBackward
 	  _ENDIF
 	  _IFEQ step
-	  lda	#4
-	  sta	step
+	   _IFNE moving
+	     lda #6
+	     sta step
+	   _ENDIF
 	  _ENDIF
 	_ENDIF
 
@@ -848,15 +868,15 @@ Start::
 
 ;;; calc
 sprite_textureX::
-	lda	perpSpriteDistLo,x
+	lda	perpSpriteDistLo-1,x
 	sta	MATHE_B
 	sta	MATHE_C
-	lda	perpSpriteDistHi,x
+	lda	perpSpriteDistHi-1,x
 	sta	MATHE_B+1
 	sta	MATHE_C+1
-	lda	rayDirXYSprLo,x
+	lda	rayDirXYSprLo-1,x
 	sta	MATHE_E
-	lda	rayDirXYSprHi,x
+	lda	rayDirXYSprHi-1,x
 	sta	MATHE_E+1
 	NOP8
 	lda	MATHE_A+1
@@ -869,7 +889,7 @@ sprite_textureX::
 
 	asl
 	clc
-	adc	posXYSpr,x
+	adc	posXYSpr-1,x
 	lsr
 	lsr
 	lsr
@@ -897,6 +917,7 @@ door_textureX::
 	ldx	#<(102*8)
 	stx	MATHE_A+2
 	ldx	#>(102*8)
+
 	stx	MATHE_A+3	; start divide (*8 => /32)
 
 	asl
@@ -1007,7 +1028,6 @@ scanMap::
 .checksprite0
 	  lda	(sprite_ptr),y
 	  beq	.wallloop
-	  eor	wallside
 	  jsr	saveSide0DataSpr
 	  bra	.wallloop
 .check_door0
@@ -1020,8 +1040,7 @@ scanMap::
 	  cmp	#3
 	  bne	.done
 
-	  ldx	#sideDist
-	  jsr	saveSide0Data
+	  jsr	saveSide0DataDoor
 	_ELSE
 	  clc
 	  lda	sideDistY
@@ -1036,84 +1055,85 @@ scanMap::
 	  lda	wallside1	; 2 or 3
 	  sta	wallside
 
-	  sec
+	  clc
 	  tya
-	  sbc	stepY
+	  adc	stepY
 	  tay
 	  lda	(world_ptr),y
 	  bne	.check_door1
 .checksprite1
 	  lda	(sprite_ptr),y
 	  beq	.wallloop
-	  eor	wallside
 	  jsr	saveSide1DataSpr
 	  bra	.wallloop
 .check_door1
 	  cmp	#3<<2|2
 	  beq	.checksprite1
 	  sta	hit
+//->	  cmp	#3<<2|3
+//->	  bne	.done
 	  lsr
 	  lsr
 	  cmp	#3
 	  bne	.done
 
-	  ldx	#sideDist
-	  jsr	saveSide1Data
+	  jsr	saveSide1DataDoor
 	_ENDIF
 .done
 	sty	y_save		; save pointer for rescan
 	rts
 
 ;;; wallside (angle 64 is north)
-;;; 0 - west
-;;; 1 - east
-;;; 2 - north
-;;; 3 - south
+;; directions
+;;;                west 0
+;;;         2 north       3 south
+;;;                 1 east
 
-saveSide0Data:
+saveSide0DataDoor:
 	lda	sideDistY
-	sta	0,x
+	sta	sideDist
 	lda	sideDistY+1
-	sta	1,x
+	sta	sideDist+1
 	lda	posY
-	sta	2,x
+	sta	posXY
 	sec
 	lda	#0
 	sbc	rayDirY
-	sta	3,x
+	sta	rayDirXY
 	lda	#0
 	sbc	rayDirY+1
-	sta	4,x
+	sta	rayDirXY+1
 	clc
 	lda	perpWallDist
 	adc	deltaDistXHalf
-	sta	5,x
+	sta	perpDoorDist
 	lda	perpWallDist+1
 	adc	deltaDistXHalf+1
-	sta	6,x
+	sta	perpDoorDist+1
 	rts
 
-saveSide1Data:
+saveSide1DataDoor:
 	lda	sideDistX
-	sta	0,x
+	sta	sideDist
 	lda	sideDistX+1
-	sta	1,x
+	sta	sideDist+1
 	lda	posX
-	sta	2,x
+	sta	posXY
 	lda	rayDirX
-	sta	3,x
+	sta	rayDirXY
 	lda	rayDirX+1
-	sta	4,x
+	sta	rayDirXY+1
 	clc
 	lda	perpWallDist
 	adc	deltaDistYHalf
-	sta	5,x
+	sta	perpDoorDist
 	lda	perpWallDist+1
 	adc	deltaDistYHalf+1
-	sta	6,x
+	sta	perpDoorDist+1
 	rts
 
 saveSide0DataSpr:
+	eor	wallside
 	ldx	spr_sp
 	sta	sprites,x
 	lda	sideDistY
@@ -1140,6 +1160,7 @@ saveSide0DataSpr:
 	rts
 
 saveSide1DataSpr:
+	eor	wallside
 	ldx	spr_sp
 	sta	sprites,x
 	lda	sideDistX
@@ -1197,6 +1218,7 @@ moveBackward::
 	jsr	getWorld_XY_reg
 	_IFCS
 	  SUBWABC dirX,posX,posX
+	  dec moving
 	_ENDIF
 
 	ldx	posX+1
@@ -1208,10 +1230,8 @@ moveBackward::
 	jsr	getWorld_XY_reg
 	_IFCS
 	  ADDWABC posY,dirYHalf,posY
+	  dec moving
 	_ENDIF
-	  lda	#$f
-	  trb posX
-	  trb posY
 	rts
 ;;; ----------------------------------------
 ;;; Move dirXHalf step forward
@@ -1226,6 +1246,7 @@ moveForward::
 	jsr	getWorld_XY_reg1
 	_IFCS
 	  ADDWABC dirXHalf,posX,posX
+	  dec moving
 	_ENDIF
 
 	ldx	posX+1
@@ -1237,10 +1258,8 @@ moveForward::
 	jsr	getWorld_XY_reg
 	_IFCS
 	  SUBWABC dirYHalf,posY,posY
+	  dec moving
 	_ENDIF
-	  lda	#$f
-	  trb posX
-	  trb posY
 	rts
 ;;; ----------------------------------------
 ;;; Calculate world-pointer and return element
@@ -1249,8 +1268,7 @@ getWorld_XY_reg:		; A- y ,x -x
 	tay
 getWorld_XY_reg1
 	lda	mul16,y
-	clc
-	adc	table256,x	; => A+X
+	ora	table256,x	; => A+X
 	tay
 	lda	(world_ptr),y
 	beq	.exit
@@ -1263,15 +1281,6 @@ getWorld_XY_reg1
 	lda	(sprite_ptr),y
 	bne	.hit
 	sec
-	rts
-
-getWorld_XY::
-	ldx	posY+1		; posY < 16 !!
-	lda	mul16,x
-	clc
-	adc	posX+1
-	tay
-	lda	(world_ptr),y
 	rts
 
 ;;; ----------------------------------------
@@ -1339,6 +1348,22 @@ getDirPlane::
 	txa
 	adc	dirY+1
 	sta	dirY1_5+1
+
+	lda	dirXHalf+1
+	cmp	#$80
+	ror
+	sta	dirXHalf+1
+	lda	dirXHalf
+	ror
+	sta	dirXHalf
+
+	lda	dirYHalf+1
+	cmp	#$80
+	ror
+	sta	dirYHalf+1
+	lda	dirYHalf
+	ror
+	sta	dirYHalf
 	rts
 ;;; ----------------------------------------
 ;;; Multiply A:Y by 0.781 (FOV)
@@ -1362,9 +1387,9 @@ mul6div8::
 ;;;
 mulX_410::
  IF HALF_REZ = 1
-	lda	#<819
+	lda	#<1030
 	sta	MATHE_C
-	lda	#>819
+	lda	#>1030
 	sta	MATHE_C+1
  ELSE
 	lda	#<(256*256/MAX_X_REZ)
@@ -1440,11 +1465,6 @@ sprite_ysize
 ;;; horizontal interrupt for the sky
 
 HBL::
-	inc	hbl_time
-	_IFEQ
-	inc	hbl_time+1
-	_ENDIF
-
 	dec	hbl_count
 	_IFMI
 	  _IFEQ floor
@@ -1483,7 +1503,7 @@ VBL::
 ;;; SCB for sky and floor
 
 skyFloorSCB
-	dc.b SPRCTL0_16_COL
+	dc.b SPRCTL0_BACKGROUND_SHADOW|SPRCTL0_16_COL
 	dc.b SPRCTL1_LITERAL|SPRCTL1_DEPTH_SIZE_RELOAD
 	dc.b $00
  IF MAX_X_REZ < 160
@@ -1498,40 +1518,25 @@ skyFloorSCB
 
  IF MAX_X_REZ < 160
 skyFloorSCB2
-	dc.b SPRCTL0_16_COL
-	dc.b SPRCTL1_LITERAL|SPRCTL1_DEPTH_SIZE_RELOAD,$00
-	dc.w skyFloorSCB2a
-	dc.w cls_data
-	dc.w 0,0
-	dc.w (160-MAX_X_REZ)*$80,102*$100
-	dc.b $03
-skyFloorSCB2a
-	dc.b SPRCTL0_16_COL
-	dc.b SPRCTL1_LITERAL|SPRCTL1_DEPTH_SIZE_RELOAD,$00
+	dc.b SPRCTL0_BACKGROUND_SHADOW|SPRCTL0_4_COL
+	dc.b SPRCTL1_DEPTH_SIZE_RELOAD,$00
 	dc.w skyFloorSCB3
-	dc.w cls_data
-	dc.w 1,1
-	dc.w (160-MAX_X_REZ-4)*$80,100*$100
-	dc.b $02
-
+	dc.w scr_frame_left
+	dc.w 0,0
+	dc.w $100,$100
+	dc.b $03,$4f
 skyFloorSCB3
-	dc.b SPRCTL0_16_COL
-	dc.b SPRCTL1_LITERAL|SPRCTL1_DEPTH_SIZE_RELOAD,$00
-	dc.w skyFloorSCB3a
-	dc.w cls_data
-	dc.w (160+MAX_X_REZ)/2,0
-	dc.w (160-MAX_X_REZ)*$80,102*$100
-	dc.b $03
-skyFloorSCB3a
-	dc.b SPRCTL0_16_COL
-	dc.b SPRCTL1_LITERAL|SPRCTL1_DEPTH_SIZE_RELOAD,$00
+	dc.b SPRCTL0_BACKGROUND_SHADOW|SPRCTL0_4_COL
+	dc.b SPRCTL1_DEPTH_SIZE_RELOAD,0
 	dc.w 0
-	dc.w cls_data
-	dc.w (160+MAX_X_REZ)/2+1,1
-	dc.w (160-MAX_X_REZ-4)*$80,100*$100
-	dc.b $02
- ENDIF
+	dc.w scr_frame_left
+	dc.w 160-19,0
+	dc.w $100,$100
+	dc.b $03,$43
 
+scr_frame_left:
+	ibytes	"scr_frame_left.spr"
+ ENDIF
 cls_data
 	dc.b 2,$10,0
 
@@ -1549,8 +1554,88 @@ DrawSprite::
 
 ;;; ========================================
 ;;; BLL includes
+InitIRQ::
+	php
+	sei
+	lda #$c
+	sta $fff9
+	lda #<irq
+	sta $fffe
+	lda #>irq
+	sta $ffff
+	ldy #<dummy_irq
+	ldx #15
+.loop
+	lda #>dummy_irq
+	sta irq_vecs,x
+	dex
+	tya
+	sta irq_vecs,x
+	dex
+	bpl .loop
+IFD BRKuser
+	lda #>dummy_irq
+	sta BRKvec+1
+	sty BRKvec
+ENDIF
+	plp
+	rts
 
-	include <includes/irq.inc>
+irq::
+	pha
+	lda	#$1	; 2
+	bit	$fd81	; 4
+	beq	.xx
+_0:
+	sta	$fd80
+	jmp	(irq_vecs+0*2)
+.xx
+	bmi	_7
+	bvs	_6
+
+	lda	$fd81	; 4
+	lsr
+	lsr
+	bcs	_1
+	lsr
+	bcs	_2
+	lsr
+	bcs	_3
+	lsr
+	bcs	_4
+_5:
+	lda	#$20
+	sta	$fd80
+	jmp	(irq_vecs+5*2)
+
+_3:
+	lda	#$08
+	sta	$fd80
+	jmp	(irq_vecs+3*2)
+
+_4:
+	jmp	(irq_vecs+4*2)
+_2:
+	lda	#$04
+	sta	$fd80
+	jmp	(irq_vecs+2*2)
+_1:
+	lda	#$2
+	sta	$fd80
+	jmp	(irq_vecs+1*2)
+_6:
+	lda	#$40
+	sta	$fd80
+	jmp	(irq_vecs+6*2)
+_7:
+	lda	#$80
+	sta	$fd80
+	jmp	(irq_vecs+7*2)
+
+dummy_irq
+	END_IRQ
+
+//->	include <includes/irq.inc>
 //->	include <includes/debug.inc>
 	include <includes/serial.inc>
 
@@ -1580,6 +1665,7 @@ SPR_SIZE	equ 66
 	include "smileyb.inc"
 	include "monster.inc"
 	include "monsterb.inc"
+
 
 ;;; ----------------------------------------
 
@@ -1638,3 +1724,4 @@ end:
 	echo "screen0: %Hscreen0"
 	echo "screen1: %Hscreen1"
 	echo "screen2: %Hscreen2"
+	echo "irq %H irq"
