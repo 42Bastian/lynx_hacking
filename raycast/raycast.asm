@@ -28,6 +28,7 @@ NEW_IRQ_HANDLER	equ 1
 	include <macros/mikey.mac>
 	include <macros/suzy.mac>
 	include <macros/lnx_header.mac>
+	include <macros/cart_header.mac>
 
 	;; fixed address stuff
 
@@ -170,13 +171,7 @@ perpSpriteDistHi ds MAX_SPRITES
 ;
 
  IFD LNX
-	run	0
-	LNX_HEADER BlockSize,0,"RAYCAST","42Bastian",0,0
-
-	run 0
-	ibytes	<uloader/ml.enc>
-size_of_loader:
-
+	CART_HEADER "RAYCAST","42Bastian",0,0
 	run $1ff
 	dc.b 1+((end-Start)>>8)
  ELSE
