@@ -1,0 +1,13 @@
+; Title: Mars Attacks
+; Compo: 512b oldschool
+; Author: 42Bastian
+; Info: 40 columns moving voxel landscape.
+;
+; Files:
+; mars_attacks.bin  : Assembled demo
+; mars_attacks.lnx  : Lynx ROM
+; mars_attacks.asm  : Source (LYXASS syntax)
+; mars_attacks.png  : screen shot (Felix)
+; loader.asm        : loader
+; loader.bin        : encrypted loader
+; Makefile/Rules.launch/allff.lyx.bz2 : Helpers to build

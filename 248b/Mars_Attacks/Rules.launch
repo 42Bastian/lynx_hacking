@@ -1,0 +1,43 @@
+# -*-makefile-*-
+ifneq ($(findstring darwin,$(OSTYPE)),)
+#SENDOBJ=$(BLL_ROOT)/sendobj.js/sendobj.js
+SENDOBJ=python3 $(BLL_ROOT)/sendobj.py/sendobj.py -q
+FLASHER=python3 $(BLL_ROOT)/flash_up.py/flash_up.py -q
+CARTEMU=python3 $(BLL_ROOT)/SendCart.py/SendCart.py
+COM?=/dev/tty.usbserial-FT63V37G
+COM_EMU=/dev/tty.usbmodem165120401
+else
+SENDOBJ=sendobj
+COM?=COM7
+endif
+BAUD?=1000000
+
+LNX?=$(DEMO).lnx
+
+.PHONY: send
+send: $(DEMO).o
+	@$(SENDOBJ) -b $(BAUD) -p $(COM) $<
+
+.PHONY: erase
+erase:
+	@$(FLASHER) -b $(BAUD) -p $(COM) -e
+
+.PHONY: flash
+flash: lnx
+	@$(FLASHER) -b $(BAUD) -p $(COM) -e -f $(LNX)
+
+.PHONY: sram
+sram: lnx
+	sram_up.exe -b $(BAUD) -p $(COM) -w $(LNX)
+
+.PHONY: felix
+felix: $(DEMO).o
+	@prlexec --vm "Windows 11" -r /fun/Felix.exe $<
+
+.PHONY: felix_lnx
+felix_lnx: lnx
+	@prlexec --vm "Windows 11" -r /fun/Felix_xx.exe $(LNX)
+
+.PHONY: emu
+emu:	lnx
+	@$(CARTEMU) -p $(COM_EMU) $(LNX)

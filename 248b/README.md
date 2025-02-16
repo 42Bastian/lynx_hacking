@@ -6,6 +6,10 @@ So projects here will fit into the _bootsector_ of a Lynx card.
 Actually, *249* bytes are possible. But if any 49th byte is 0, ROM stops loading!
 So sometimes code must be moved/rearranged to pass it.
 
+## [Mars_Attacks](Mars_Attacks)
+
+Voxel landscape in 512b for Lovebyte 2025
+
 ## [dido](dido)
 
 Lovebyte 2023 Entry: A waving white flag.
