@@ -67,7 +67,6 @@ irq::
 	sta	BLUERED0
 	lsr
 	sta	$FDA0
-	_ENDIF
 .exit
 	plx
 	pla
@@ -174,15 +173,27 @@ main:
 //->	lda	#<cls_SCB
 	jsr	draw_sprite
 
-	ldx	frame
+	lda	frame
+	inc
+	and	#127
+	sta	frame
+	tax
+
+	clc
 	lda	sinus,x
+	tay
+	adc	py
+	sta	py
+
+	tya
 	asl
 //->	clc
 	adc	#80
 	sta	alien_x
 
 	ldx	#%00100100
-	bbs0	frame,.move
+	bit	#2
+	beq	.move
 	  ldx	#%10000001
 .move
 	stx	alien_leg+1
@@ -199,7 +210,6 @@ main:
 	sta	y_buffer,x
 	dex
 	bpl	.clr
-
 
 	stz	yl
 	lda	py
@@ -321,26 +331,9 @@ lx:
 
 	dec	px
 
-	ldx	frame
-	clc
-	lda	py
-	sbc	sinus,x
-	sta	py
 
-	inc	frame
-	rmb7	frame
 	jmp	main
 
-alien1:
-	dc.b 2,%01011010
-	dc.b 2,%00111100
-	dc.b 2,%01011010
-	dc.b 3,%01111110,0
-//->	dc.b 2,%00100100
-	dc.b 2,%01000010
-alien_leg:
-	dc.b 3,%00100100,0
-	dc.b 0
 
 	;; Writing low-byte in SUZY space clears highbyte!
 SUZY_addr
@@ -351,6 +344,19 @@ scb_init_data:
 	db $01,(SPRCTL1_LITERAL| SPRCTL1_DEPTH_SIZE_RELOAD),160,50
 	db SPRCTL0_NORMAL, SPRCTL1_LITERAL|SPRCTL1_DEPTH_SIZE_RELOAD, 4
 	db SPRCTL0_NORMAL, SPRCTL1_LITERAL|SPRCTL1_DEPTH_SIZE_RELOAD,<alien1,>alien1,2,2,12
+
+
+alien1:
+	dc.b 2,%01011010
+	dc.b 2,%00111100
+	dc.b 2,%01011010
+	dc.b 3,%01111110,0
+//->	dc.b 2,%00100100
+	dc.b 2,%01000010
+alien_leg:
+	dc.b 3,%00100100,0
+//->	dc.b 0
+
 scb_init_addr
 	db 0,1,12,14
 	db 16+0,16+1,16+12

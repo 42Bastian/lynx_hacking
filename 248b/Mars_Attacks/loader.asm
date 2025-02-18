@@ -1,3 +1,4 @@
+* Mini loader *
 
 	run $200
 Start:
@@ -11,10 +12,6 @@ Start:
 	bne	.l
 End:
 size	set End-Start
-free	set 51-size
+free	set 50-size
 
-	IF free > 0
-	REPT	free
-	dc.b	0x42		; must be filled for Lynx ROM
-	ENDR
-	ENDIF
+	echo "Loader size %dsize"
