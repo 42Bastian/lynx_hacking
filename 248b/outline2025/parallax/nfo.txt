@@ -1,0 +1,11 @@
+; Title: parallax
+; Compo: 256b oldschool
+; Author: 42Bastian
+; Info: Lynx-pwr: 3 full-screen sprite + one text sprite, acutal size 249bytes
+;
+; Files:
+; parallax.bin  : Assembled intro
+; parallax.lnx  : Lynx ROM (runs in Felix, from GD and direct card)
+; parallax.asm  : Source (LYXASS syntax)
+; parallax.png  : screen shot
+; bll_init.inc  : development helper, not part of .bin

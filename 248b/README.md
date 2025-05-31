@@ -6,6 +6,14 @@ So projects here will fit into the _bootsector_ of a Lynx card.
 Actually, *249* bytes are possible. But if any 49th byte is 0, ROM stops loading!
 So sometimes code must be moved/rearranged to pass it.
 
+## [parallax](outline2025/parallax)
+
+Sprite demo for Outline 2025
+
+## [Raster ist mein Laster](outline2025/riml)
+
+Raster demo for Outline 2025
+
 ## [Mars_Attacks](Mars_Attacks)
 
 Voxel landscape in 512b for Lovebyte 2025
