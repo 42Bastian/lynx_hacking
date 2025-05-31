@@ -1,0 +1,11 @@
+; Title: riml - Raster ist mein Laster
+; Compo: 256b oldschool
+; Author: 42Bastian
+; Info: Raster bars waving "raster"
+;
+; Files:
+; riml.bin  : Assembled intro
+; riml.lnx  : Lynx ROM (runs in Felix, from GD and direct card)
+; riml.asm  : Source (LYXASS syntax)
+; riml.png  : screen shot
+; bll_init.inc  : development helper, not part of .bin
