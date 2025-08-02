@@ -6,6 +6,10 @@ So projects here will fit into the _bootsector_ of a Lynx card.
 Actually, *249* bytes are possible. But if any 49th byte is 0, ROM stops loading!
 So sometimes code must be moved/rearranged to pass it.
 
+## [skywalk](skywalk)
+
+Starpath made for Sillyventure 2025 SE
+
 ## [parallax](outline2025/parallax)
 
 Sprite demo for Outline 2025
