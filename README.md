@@ -1,5 +1,11 @@
 # lynx_hacking
 
+This repo is moved to CodeBerg:
+
+https://codeberg.org/42Bastian/lynx_hacking
+
+
+
 Collection of Lynx demos, trials.
 
 This collection of demos, examples are based on (new) BLL and lyxass:
